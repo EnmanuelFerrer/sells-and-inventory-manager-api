@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { UsersService } from './users.service';
 import { User } from '../common/schemas/users.schema';
@@ -12,6 +12,7 @@ describe('UsersService', () => {
     create: jest.Mock;
     find: jest.Mock;
     findOne: jest.Mock;
+    exists: jest.Mock;
   };
 
   const mockUser = {
@@ -34,6 +35,7 @@ describe('UsersService', () => {
       create: jest.fn().mockResolvedValue(mockUser),
       find: jest.fn().mockImplementation(() => createQueryMock([mockUser])),
       findOne: jest.fn().mockImplementation(() => createQueryMock(mockUser)),
+      exists: jest.fn().mockImplementation(() => createQueryMock(true)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,10 +62,25 @@ describe('UsersService', () => {
         password: 'Password1!',
       };
 
+      mockUserModel.exists.mockImplementation(() => Promise.resolve(false));
+
       const result = await service.create(createUserDto);
 
       expect(mockUserModel.create).toHaveBeenCalledWith(createUserDto);
       expect(result).toEqual(mockUser);
+    });
+
+    it('should throw ConflictException if user already exists', async () => {
+      const createUserDto: CreateUserDto = {
+        username: 'testuser',
+        password: 'Password1!',
+      };
+
+      mockUserModel.exists.mockImplementation(() => Promise.resolve(true));
+
+      await expect(service.create(createUserDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
