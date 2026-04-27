@@ -5,11 +5,13 @@ import { UsersModule } from './users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BrandsModule } from './brands/brands.module';
 
 @Module({
   imports: [
     // Module imports
     UsersModule,
+    BrandsModule,
 
     // Config imports
     ConfigModule.forRoot({
