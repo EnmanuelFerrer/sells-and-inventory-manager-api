@@ -4,7 +4,7 @@
   "description": "This is the API of a selling and inventory management software",
   "author": "Enmanuel Ferrer",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
