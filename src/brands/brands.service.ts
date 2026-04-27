@@ -1,7 +1,7 @@
 import {
   ConflictException,
-  HttpException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -54,11 +54,10 @@ export class BrandsService {
     if (!updatedBrand) {
       this.logger.error('Error adding user to brand.');
       this.logger.debug('Deleting brand.');
-      await this.brandModel.deleteOne({ _id: brand._id });
+      await this.brandModel.findOneAndDelete({ _id: brand._id });
       this.logger.debug('Brand deleted.');
-      throw new HttpException(
+      throw new InternalServerErrorException(
         'Error linking current user to brand. Try again later.',
-        500,
       );
     }
 
