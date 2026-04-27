@@ -2,11 +2,11 @@
 
 ## Author
 
-<span style="font-size: 24px">Enmanuel Ferrer</span>
+Enmanuel Ferrer
 
 [![Enmanuel Ferrer](https://skillicons.dev/icons?i=linkedin)](https://www.linkedin.com/in/enmanuelferrer)
 
-Connect with me on LinkedIn. Click on the icon to visit my profile.
+Connect with me on LinkedIn. Click on the icon above to visit my profile.
 
 ## Description
 
