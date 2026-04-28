@@ -34,4 +34,21 @@ export class BrandsController {
       paginationQueryDto,
     );
   }
+
+  @Get(':brandId')
+  async findOne(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('brandId', ParseMongoIdsPipe) brandId: string,
+  ): Promise<Brand> {
+    return await this.brandsService.findOne(
+      {
+        _id: brandId,
+        users: {
+          $elemMatch: { $eq: userId },
+        },
+      },
+      {},
+      {},
+    );
+  }
 }

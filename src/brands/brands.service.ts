@@ -89,10 +89,47 @@ export class BrandsService {
 
     return {
       items: brands,
-      itemsCount,
-      pagesCount: Math.ceil(brands.length / limit),
+      totalItems: itemsCount,
+      totalPages: Math.ceil(brands.length / limit),
       skip,
       limit,
     };
+  }
+
+  async findOne(
+    queryFilter: QueryFilter<Brand>,
+    projection: ProjectionFields<Brand> = {},
+    options: QueryOptions<Brand> = {},
+  ): Promise<Brand> {
+    this.logger.debug('Finding brand.');
+    const brand = await this.brandModel.findOne(
+      queryFilter,
+      projection,
+      options,
+    );
+    if (!brand) {
+      this.logger.debug(
+        `Brand not found for query: ${JSON.stringify(queryFilter)}.`,
+      );
+      throw new NotFoundException(`Brand not found.`);
+    }
+    this.logger.debug('Brand found.');
+    return brand;
+  }
+
+  async appendUser(brandId: string, userId: string): Promise<void> {
+    this.logger.debug('Adding user to brand.');
+    const updatedBrand = await this.brandModel.findOneAndUpdate(
+      { _id: brandId },
+      { $push: { users: userId } },
+      { returnDocument: 'after' },
+    );
+    if (!updatedBrand) {
+      this.logger.error('Error adding user to brand.');
+      throw new InternalServerErrorException(
+        'Error linking current user to brand. Try again later.',
+      );
+    }
+    this.logger.debug('User added to brand.');
   }
 }
