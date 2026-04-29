@@ -1,11 +1,15 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument } from 'mongoose';
+import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { User } from './users.schema';
+import { AbstractDocument } from './abstract.schema';
 
 export type BrandDocument = HydratedDocument<Brand>;
 
-@Schema()
-export class Brand {
+@Schema({
+  timestamps: true,
+  versionKey: false,
+})
+export class Brand extends AbstractDocument {
   @Prop({
     type: [
       {
@@ -14,7 +18,7 @@ export class Brand {
       },
     ],
   })
-  users: User[];
+  users: Types.ObjectId[] | User[];
 
   @Prop({
     type: String,
