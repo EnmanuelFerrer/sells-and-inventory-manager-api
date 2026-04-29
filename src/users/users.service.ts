@@ -1,23 +1,43 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
-import { User } from '../common/schemas/users.schema';
+import { ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
+import { User, UserDocument } from '../common/schemas/users.schema';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { UsersRepositoryService } from './repositories/users-repository.service';
 
 @Injectable()
 export class UsersService {
   private logger = new Logger(UsersService.name);
 
-  constructor(
-    @InjectModel(User.name)
-    private UserModel: Model<User>,
-  ) {}
+  constructor(private readonly usersRepository: UsersRepositoryService) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     this.logger.debug('Creating user.');
-    const user = await this.UserModel.create(createUserDto);
+
+    const userExists = await this.usersRepository.exists({
+      username: createUserDto.username,
+    });
+
+    if (userExists) {
+      this.logger.debug(
+        `User already exists for username: ${createUserDto.username}.`,
+      );
+      throw new ConflictException(`User already exists.`);
+    }
+
+    const user = await this.usersRepository.create(createUserDto);
+
+    if (!user) {
+      this.logger.error('Error creating user.');
+      throw new NotFoundException(`User not found.`);
+    }
+
     this.logger.debug('User created.');
     return user;
   }
@@ -27,40 +47,35 @@ export class UsersService {
     projection: ProjectionFields<User> = {},
     options: QueryOptions<User> = {},
     paginationDto: PaginationQueryDto,
-  ): Promise<IPagination<User>> {
+  ): Promise<IPagination<UserDocument>> {
     this.logger.debug('Finding all users.');
-
-    const [skip, limit] = [paginationDto.skip || 0, paginationDto.limit || 25];
-    const users = await this.UserModel.find(queryFilter, projection, {
-      skip,
-      limit,
+    const users = await this.usersRepository.find(queryFilter, projection, {
       ...options,
+      skip: paginationDto.skip,
+      limit: paginationDto.limit,
     });
-    const itemsCount = users.length;
 
-    if (itemsCount === 1) {
-      this.logger.debug(`${itemsCount} user found.`);
+    if (users.totalItems === 1) {
+      this.logger.debug(`${users.totalItems} user found.`);
     } else {
-      this.logger.debug(`${itemsCount} users found.`);
+      this.logger.debug(`${users.totalItems} users found.`);
     }
 
     this.logger.debug('Users found.');
-    return {
-      items: users,
-      itemsCount,
-      pagesCount: Math.ceil(users.length / limit),
-      skip,
-      limit,
-    };
+    return users;
   }
 
   async findOne(
     queryFilter: QueryFilter<User>,
     projection: ProjectionFields<User> = {},
     options: QueryOptions<User> = {},
-  ): Promise<User> {
+  ): Promise<UserDocument> {
     this.logger.debug('Finding user.');
-    const user = await this.UserModel.findOne(queryFilter, projection, options);
+    const user = await this.usersRepository.findOne(
+      queryFilter,
+      projection,
+      options,
+    );
     if (!user) {
       this.logger.debug(
         `User not found for query: ${JSON.stringify(queryFilter)}, projection: ${JSON.stringify(projection)}, options: ${JSON.stringify(options)}.`,

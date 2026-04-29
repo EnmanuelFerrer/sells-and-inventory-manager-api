@@ -5,11 +5,15 @@ import { UsersModule } from './users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BrandsModule } from './brands/brands.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
     // Module imports
     UsersModule,
+    BrandsModule,
+    ProductsModule,
 
     // Config imports
     ConfigModule.forRoot({
@@ -29,6 +33,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        dbName: 'sells-and-inventory-manager',
       }),
     }),
   ],
