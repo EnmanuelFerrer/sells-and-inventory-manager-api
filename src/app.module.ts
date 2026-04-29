@@ -6,12 +6,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BrandsModule } from './brands/brands.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
     // Module imports
     UsersModule,
     BrandsModule,
+    ProductsModule,
 
     // Config imports
     ConfigModule.forRoot({
