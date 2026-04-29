@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
 import { UsersService } from './users.service';
+import { UsersRepositoryService } from './repositories/users-repository.service';
 import { User } from '../common/schemas/users.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { IPagination } from '../common/interfaces/pagination.interface';
+import { RolesEnum } from '../common/enums/roles.enum';
+import { Types } from 'mongoose';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let mockUserModel: {
+  let mockUsersRepository: {
     create: jest.Mock;
     find: jest.Mock;
     findOne: jest.Mock;
@@ -16,34 +19,37 @@ describe('UsersService', () => {
   };
 
   const mockUser = {
-    _id: 'user-id-123',
+    _id: new Types.ObjectId(),
     username: 'testuser',
     password: 'hashedpassword',
-    rol: 'user',
+    rol: RolesEnum.USER,
     isActive: true,
+  };
+
+  const mockPaginatedResult: IPagination<User> = {
+    items: [mockUser],
+    skip: 0,
+    limit: 25,
+    totalItems: 1,
+    totalPages: 1,
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const createQueryMock = (resolvedValue: unknown) => {
-      const mockQuery = Promise.resolve(resolvedValue);
-      return mockQuery;
-    };
-
-    mockUserModel = {
+    mockUsersRepository = {
       create: jest.fn().mockResolvedValue(mockUser),
-      find: jest.fn().mockImplementation(() => createQueryMock([mockUser])),
-      findOne: jest.fn().mockImplementation(() => createQueryMock(mockUser)),
-      exists: jest.fn().mockImplementation(() => createQueryMock(true)),
+      find: jest.fn().mockResolvedValue(mockPaginatedResult),
+      findOne: jest.fn().mockResolvedValue(mockUser),
+      exists: jest.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         {
-          provide: getModelToken(User.name),
-          useValue: mockUserModel,
+          provide: UsersRepositoryService,
+          useValue: mockUsersRepository,
         },
       ],
     }).compile();
@@ -62,11 +68,14 @@ describe('UsersService', () => {
         password: 'Password1!',
       };
 
-      mockUserModel.exists.mockImplementation(() => Promise.resolve(false));
+      mockUsersRepository.exists.mockResolvedValue(false);
 
       const result = await service.create(createUserDto);
 
-      expect(mockUserModel.create).toHaveBeenCalledWith(createUserDto);
+      expect(mockUsersRepository.exists).toHaveBeenCalledWith({
+        username: createUserDto.username,
+      });
+      expect(mockUsersRepository.create).toHaveBeenCalledWith(createUserDto);
       expect(result).toEqual(mockUser);
     });
 
@@ -76,7 +85,7 @@ describe('UsersService', () => {
         password: 'Password1!',
       };
 
-      mockUserModel.exists.mockImplementation(() => Promise.resolve(true));
+      mockUsersRepository.exists.mockResolvedValue(true);
 
       await expect(service.create(createUserDto)).rejects.toThrow(
         ConflictException,
@@ -93,17 +102,23 @@ describe('UsersService', () => {
 
       const result = await service.findAll({}, {}, {}, paginationDto);
 
-      expect(mockUserModel.find).toHaveBeenCalledWith(
+      expect(mockUsersRepository.find).toHaveBeenCalledWith(
         {},
         {},
         { skip: 0, limit: 25 },
       );
       expect(result.items).toHaveLength(1);
-      expect(result.itemsCount).toBe(1);
+      expect(result.totalItems).toBe(1);
     });
 
     it('should handle empty results', async () => {
-      mockUserModel.find.mockImplementation(() => Promise.resolve([]));
+      mockUsersRepository.find.mockResolvedValue({
+        items: [],
+        skip: 0,
+        limit: 25,
+        totalItems: 0,
+        totalPages: 0,
+      });
 
       const paginationDto: PaginationQueryDto = {
         skip: 0,
@@ -113,7 +128,7 @@ describe('UsersService', () => {
       const result = await service.findAll({}, {}, {}, paginationDto);
 
       expect(result.items).toHaveLength(0);
-      expect(result.itemsCount).toBe(0);
+      expect(result.totalItems).toBe(0);
     });
   });
 
@@ -121,7 +136,7 @@ describe('UsersService', () => {
     it('should return a user when found', async () => {
       const result = await service.findOne({ _id: 'user-id-123' });
 
-      expect(mockUserModel.findOne).toHaveBeenCalledWith(
+      expect(mockUsersRepository.findOne).toHaveBeenCalledWith(
         { _id: 'user-id-123' },
         {},
         {},
@@ -130,7 +145,7 @@ describe('UsersService', () => {
     });
 
     it('should throw NotFoundException when user not found', async () => {
-      mockUserModel.findOne.mockImplementation(() => Promise.resolve(null));
+      mockUsersRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne({ _id: 'nonexistent' })).rejects.toThrow(
         NotFoundException,
@@ -144,7 +159,7 @@ describe('UsersService', () => {
 
       await service.findOne(queryFilter, projection, options);
 
-      expect(mockUserModel.findOne).toHaveBeenCalledWith(
+      expect(mockUsersRepository.findOne).toHaveBeenCalledWith(
         queryFilter,
         projection,
         options,
