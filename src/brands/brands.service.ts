@@ -6,20 +6,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { InjectModel } from '@nestjs/mongoose';
 import { Brand } from '../common/schemas/brand.schema';
-import { Model, ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
+import { ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
 import { UsersService } from '../users/users.service';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { BrandsRepositoryService } from './repositories/brands-repository.service';
 
 @Injectable()
 export class BrandsService {
   private readonly logger = new Logger(BrandsService.name);
 
   constructor(
-    @InjectModel(Brand.name) private brandModel: Model<Brand>,
-
+    private readonly brandRepository: BrandsRepositoryService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -31,7 +30,7 @@ export class BrandsService {
       throw new NotFoundException(`User not found.`);
     }
 
-    const brandExists = await this.brandModel.exists({
+    const brandExists = await this.brandRepository.exists({
       name: { $regex: createBrandDto.name, $options: 'i' },
     });
     if (brandExists) {
@@ -41,12 +40,12 @@ export class BrandsService {
       throw new ConflictException(`Brand already exists.`);
     }
 
-    const brand = await this.brandModel.create({
+    const brand = await this.brandRepository.create({
       name: createBrandDto.name,
     });
     this.logger.debug('Brand created.', 'Adding user to brand.');
 
-    const updatedBrand = await this.brandModel.findOneAndUpdate(
+    const updatedBrand = await this.brandRepository.findOneAndUpdate(
       { _id: brand._id },
       { $push: { users: user } },
       { returnDocument: 'after' },
@@ -54,7 +53,7 @@ export class BrandsService {
     if (!updatedBrand) {
       this.logger.error('Error adding user to brand.');
       this.logger.debug('Deleting brand.');
-      await this.brandModel.findOneAndDelete({ _id: brand._id });
+      await this.brandRepository.findOneAndDelete({ _id: brand._id });
       this.logger.debug('Brand deleted.');
       throw new InternalServerErrorException(
         'Error linking current user to brand. Try again later.',
@@ -73,27 +72,19 @@ export class BrandsService {
   ): Promise<IPagination<Brand>> {
     this.logger.debug('Finding all brands.');
 
-    const [skip, limit] = [paginationDto.skip || 0, paginationDto.limit || 25];
-    const brands = await this.brandModel.find(queryFilter, projection, {
-      skip,
-      limit,
+    const brands = await this.brandRepository.find(queryFilter, projection, {
       ...options,
+      skip: paginationDto.skip,
+      limit: paginationDto.limit,
     });
-    const itemsCount = brands.length;
 
-    if (itemsCount === 1) {
-      this.logger.debug(`${itemsCount} brand found.`);
+    if (brands.totalItems === 1) {
+      this.logger.debug(`${brands.totalItems} brand found.`);
     } else {
-      this.logger.debug(`${itemsCount} brands found.`);
+      this.logger.debug(`${brands.totalItems} brands found.`);
     }
 
-    return {
-      items: brands,
-      totalItems: itemsCount,
-      totalPages: Math.ceil(brands.length / limit),
-      skip,
-      limit,
-    };
+    return brands;
   }
 
   async findOne(
@@ -102,7 +93,7 @@ export class BrandsService {
     options: QueryOptions<Brand> = {},
   ): Promise<Brand> {
     this.logger.debug('Finding brand.');
-    const brand = await this.brandModel.findOne(
+    const brand = await this.brandRepository.findOne(
       queryFilter,
       projection,
       options,
@@ -119,7 +110,7 @@ export class BrandsService {
 
   async appendUser(brandId: string, userId: string): Promise<void> {
     this.logger.debug('Adding user to brand.');
-    const updatedBrand = await this.brandModel.findOneAndUpdate(
+    const updatedBrand = await this.brandRepository.findOneAndUpdate(
       { _id: brandId },
       { $push: { users: userId } },
       { returnDocument: 'after' },

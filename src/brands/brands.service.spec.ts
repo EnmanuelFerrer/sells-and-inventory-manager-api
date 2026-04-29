@@ -1,17 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BrandsService } from './brands.service';
-import { getModelToken } from '@nestjs/mongoose';
-import { Brand } from '../common/schemas/brand.schema';
+import { BrandsRepositoryService } from './repositories/brands-repository.service';
 import { UsersService } from '../users/users.service';
+import { Brand } from '../common/schemas/brand.schema';
+import { CreateBrandDto } from './dto/create-brand.dto';
+import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { IPagination } from '../common/interfaces/pagination.interface';
 import {
   ConflictException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { Types } from 'mongoose';
+import { User } from '../common/schemas/users.schema';
 
 describe('BrandsService', () => {
   let service: BrandsService;
-  let mockBrandModel: {
+  let mockBrandRepository: {
     create: jest.Mock;
     find: jest.Mock;
     findOne: jest.Mock;
@@ -19,51 +24,55 @@ describe('BrandsService', () => {
     findOneAndDelete: jest.Mock;
     exists: jest.Mock;
   };
+  let mockUsersService: {
+    findOne: jest.Mock;
+  };
 
   const mockUser = {
-    _id: 'user-id-123',
-  };
+    _id: new Types.ObjectId(),
+    username: 'testuser',
+  } as User;
 
-  const mockBrand = {
-    _id: 'brand-id-123',
+  const mockBrand: Brand = {
+    _id: new Types.ObjectId(),
     name: 'testbrand',
+    users: [mockUser],
   };
 
-  const mockUserService = {
-    findOne: jest.fn().mockResolvedValue(mockUser),
+  const mockPaginatedResult: IPagination<Brand> = {
+    items: [mockBrand],
+    skip: 0,
+    limit: 25,
+    totalItems: 1,
+    totalPages: 1,
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const createQueryMock = (resolvedValue: unknown) => {
-      const mockQuery = Promise.resolve(resolvedValue);
-      return mockQuery;
+    mockBrandRepository = {
+      create: jest.fn().mockResolvedValue(mockBrand),
+      find: jest.fn().mockResolvedValue(mockPaginatedResult),
+      findOne: jest.fn().mockResolvedValue(mockBrand),
+      findOneAndUpdate: jest.fn().mockResolvedValue(mockBrand),
+      findOneAndDelete: jest.fn().mockResolvedValue(mockBrand),
+      exists: jest.fn().mockResolvedValue(false),
     };
 
-    mockBrandModel = {
-      create: jest.fn().mockResolvedValue(mockBrand),
-      find: jest.fn().mockImplementation(() => createQueryMock([mockBrand])),
-      findOne: jest.fn().mockImplementation(() => createQueryMock(mockBrand)),
-      findOneAndUpdate: jest
-        .fn()
-        .mockImplementation(() => createQueryMock(mockBrand)),
-      findOneAndDelete: jest
-        .fn()
-        .mockImplementation(() => createQueryMock(mockBrand)),
-      exists: jest.fn().mockImplementation(() => createQueryMock(true)),
+    mockUsersService = {
+      findOne: jest.fn().mockResolvedValue(mockUser),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandsService,
         {
-          provide: getModelToken(Brand.name),
-          useValue: mockBrandModel,
+          provide: BrandsRepositoryService,
+          useValue: mockBrandRepository,
         },
         {
           provide: UsersService,
-          useValue: mockUserService,
+          useValue: mockUsersService,
         },
       ],
     }).compile();
@@ -76,48 +85,148 @@ describe('BrandsService', () => {
   });
 
   describe('create', () => {
-    it('should create a new brand', async () => {
-      mockBrandModel.exists.mockImplementation(() => Promise.resolve(false));
+    const userId = 'user-id-123';
+    const createBrandDto: CreateBrandDto = { name: 'testbrand' };
 
-      const result = await service.create(mockUser._id, {
-        name: mockBrand.name,
-      });
+    it('should create a new brand and link the user', async () => {
+      const result = await service.create(userId, createBrandDto);
 
-      expect(mockBrandModel.create).toHaveBeenCalledWith({
-        name: mockBrand.name,
+      expect(mockUsersService.findOne).toHaveBeenCalledWith({
+        _id: userId,
       });
+      expect(mockBrandRepository.exists).toHaveBeenCalledWith({
+        name: { $regex: createBrandDto.name, $options: 'i' },
+      });
+      expect(mockBrandRepository.create).toHaveBeenCalledWith({
+        name: createBrandDto.name,
+      });
+      expect(mockBrandRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockBrand._id },
+        { $push: { users: mockUser } },
+        { returnDocument: 'after' },
+      );
       expect(result).toEqual(mockBrand);
     });
 
-    it('should throw ConflictException if user is not found', async () => {
-      mockUserService.findOne.mockImplementation(() => Promise.resolve(null));
+    it('should throw NotFoundException if user is not found', async () => {
+      mockUsersService.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.create(mockUser._id, { name: mockBrand.name }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.create(userId, createBrandDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-    it('it should throw ConflictException if brand with same name already exists', async () => {
-      mockUserService.findOne.mockImplementation(() =>
-        Promise.resolve(mockUser),
+    it('should throw ConflictException if brand with same name already exists', async () => {
+      mockBrandRepository.exists.mockResolvedValue(true);
+
+      await expect(service.create(userId, createBrandDto)).rejects.toThrow(
+        ConflictException,
       );
-      await expect(
-        service.create(mockUser._id, { name: mockBrand.name }),
-      ).rejects.toThrow(ConflictException);
     });
 
-    it('it should throw InternalServerError if an error occurs pushing the user into the brand', async () => {
-      mockUserService.findOne.mockImplementation(() =>
-        Promise.resolve(mockUser),
-      );
-      mockBrandModel.exists.mockImplementationOnce(() =>
-        Promise.resolve(false),
+    it('should throw InternalServerErrorException if error linking user to brand', async () => {
+      mockBrandRepository.findOneAndUpdate.mockResolvedValue(null);
+
+      await expect(service.create(userId, createBrandDto)).rejects.toThrow(
+        InternalServerErrorException,
       );
 
-      mockBrandModel.findOneAndUpdate.mockResolvedValue(null);
+      expect(mockBrandRepository.findOneAndDelete).toHaveBeenCalledWith({
+        _id: mockBrand._id,
+      });
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated brands', async () => {
+      const paginationDto: PaginationQueryDto = {
+        skip: 0,
+        limit: 25,
+      };
+
+      const result = await service.findAll({}, {}, {}, paginationDto);
+
+      expect(mockBrandRepository.find).toHaveBeenCalledWith(
+        {},
+        {},
+        { skip: 0, limit: 25 },
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.totalItems).toBe(1);
+    });
+
+    it('should handle empty results', async () => {
+      mockBrandRepository.find.mockResolvedValue({
+        items: [],
+        skip: 0,
+        limit: 25,
+        totalItems: 0,
+        totalPages: 0,
+      });
+
+      const paginationDto: PaginationQueryDto = {
+        skip: 0,
+        limit: 25,
+      };
+
+      const result = await service.findAll({}, {}, {}, paginationDto);
+
+      expect(result.items).toHaveLength(0);
+      expect(result.totalItems).toBe(0);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a brand when found', async () => {
+      const result = await service.findOne({ _id: 'brand-id-123' });
+
+      expect(mockBrandRepository.findOne).toHaveBeenCalledWith(
+        { _id: 'brand-id-123' },
+        {},
+        {},
+      );
+      expect(result).toEqual(mockBrand);
+    });
+
+    it('should throw NotFoundException when brand not found', async () => {
+      mockBrandRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne({ _id: 'nonexistent' })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should accept queryFilter, projection, and options', async () => {
+      const queryFilter = { name: 'testbrand' };
+      const projection = { name: 1 };
+      const options = { sort: { name: 1 } };
+
+      await service.findOne(queryFilter, projection, options);
+
+      expect(mockBrandRepository.findOne).toHaveBeenCalledWith(
+        queryFilter,
+        projection,
+        options,
+      );
+    });
+  });
+
+  describe('appendUser', () => {
+    it('should append user to brand', async () => {
+      await service.appendUser('brand-id-123', 'user-id-123');
+
+      expect(mockBrandRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: 'brand-id-123' },
+        { $push: { users: 'user-id-123' } },
+        { returnDocument: 'after' },
+      );
+    });
+
+    it('should throw InternalServerErrorException if update fails', async () => {
+      mockBrandRepository.findOneAndUpdate.mockResolvedValue(null);
 
       await expect(
-        service.create(mockUser._id, { name: mockBrand.name }),
+        service.appendUser('brand-id-123', 'user-id-123'),
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
