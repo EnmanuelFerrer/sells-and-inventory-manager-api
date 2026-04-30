@@ -20,6 +20,7 @@ describe('ProductsService', () => {
     create: jest.Mock;
     find: jest.Mock;
     findOne: jest.Mock;
+    count: jest.Mock;
   };
   let mockUsersService: {
     findOne: jest.Mock;
@@ -67,6 +68,7 @@ describe('ProductsService', () => {
       create: jest.fn().mockResolvedValue(mockProduct),
       find: jest.fn().mockResolvedValue(mockPaginatedResult),
       findOne: jest.fn().mockResolvedValue(mockProduct),
+      count: jest.fn().mockResolvedValue(5),
     };
 
     mockUsersService = {
@@ -308,6 +310,24 @@ describe('ProductsService', () => {
         projection,
         options,
       );
+    });
+  });
+
+  describe('count', () => {
+    it('should return the count of products matching the filter', async () => {
+      const queryFilter = { isActive: true };
+      const result = await service.count(queryFilter);
+
+      expect(mockProductRepository.count).toHaveBeenCalledWith(queryFilter);
+      expect(result).toBe(5);
+    });
+
+    it('should return 0 when no products match', async () => {
+      mockProductRepository.count.mockResolvedValue(0);
+
+      const result = await service.count({ name: 'Nonexistent' });
+
+      expect(result).toBe(0);
     });
   });
 });

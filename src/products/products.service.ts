@@ -117,6 +117,13 @@ export class ProductsService {
     return product;
   }
 
+  async count(queryFilter: QueryFilter<Product>): Promise<number> {
+    this.logger.debug('Counting products.');
+    const count = await this.productRepository.count(queryFilter);
+    this.logger.debug('Products counted.');
+    return count;
+  }
+
   private validateCreationData(dto: CreateProductDto): void {
     if (dto.gain && dto.price) {
       throw new ConflictException(
@@ -147,7 +154,7 @@ export class ProductsService {
   } {
     // Calculate gain and price
     // 1. If gain is set, price must be calculated
-    // 2. If price is set, gain must be calculated
+    // 2. If price is set, gain must be calculated\
 
     // We assume that cost is always set based on the validations
 
