@@ -22,21 +22,21 @@ This software is and API built for a selling and inventory management software t
 To set up the project, you need to have Node.js and NPM installed on your computer. Then you can run the following commands to install the dependencies:
 
 ```bash
-$ pnpm install
+$ npm install
 ```
 
 Then you should define the following environment variables:
 
 ```bash
-PORT=3000
-API_PREFIX=api
-MONGODB_URI=mongodb://localhost:27017/sells-and-inventory-manager
+PORT=3000 # optional. Default: 3000
+API_PREFIX=api # optional. Default: api
+MONGODB_URI=mongodb://localhost:27017z
 ```
 
 Once you have defined the environment variables, you can start the server by running the following command:
 
 ```bash
-$ pnpm start
+$ npm start
 ```
 
 ## Documentation
