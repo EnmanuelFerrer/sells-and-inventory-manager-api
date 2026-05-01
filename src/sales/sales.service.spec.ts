@@ -9,12 +9,15 @@ import { Sale } from '../common/schemas/sale.schema';
 import { Product } from '../common/schemas/product.schema';
 import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
 import { IPagination } from '../common/interfaces/pagination.interface';
+import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { Types } from 'mongoose';
 
 describe('SalesService', () => {
   let service: SalesService;
   let mockSalesRepository: {
     create: jest.Mock;
+    find: jest.Mock;
+    findOne: jest.Mock;
   };
   let mockUsersService: {
     exists: jest.Mock;
@@ -81,6 +84,14 @@ describe('SalesService', () => {
 
     mockSalesRepository = {
       create: jest.fn().mockResolvedValue(mockSale),
+      find: jest.fn().mockResolvedValue({
+        items: [mockSale],
+        skip: 0,
+        limit: 25,
+        totalItems: 1,
+        totalPages: 1,
+      }),
+      findOne: jest.fn().mockResolvedValue(mockSale),
     };
 
     mockUsersService = {
@@ -295,17 +306,109 @@ describe('SalesService', () => {
 
       await service.create(userId, createSaleDto);
 
-      expect(mockProductsService.count).toHaveBeenCalledWith(
-        expect.objectContaining({
-          user: userId,
-          _id: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            $in: expect.arrayContaining([
-              mockProduct1._id.toString(),
-              mockProduct2._id.toString(),
-            ]),
-          },
-        }),
+expect(mockProductsService.count).toHaveBeenCalledWith(
+          expect.objectContaining({
+            user: userId,
+            _id: {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              $in: expect.arrayContaining([
+                mockProduct1._id.toString(),
+                mockProduct2._id.toString(),
+              ]),
+            },
+          }),
+        );
+    });
+  });
+
+  describe('find', () => {
+    it('should return paginated sales', async () => {
+      const paginationDto: PaginationQueryDto = {
+        skip: 0,
+        limit: 25,
+      };
+
+      const result = await service.find({ user: 'user-id-123' }, {}, {}, paginationDto);
+
+      expect(mockSalesRepository.find).toHaveBeenCalledWith(
+        { user: 'user-id-123' },
+        {},
+        { skip: 0, limit: 25 },
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.totalItems).toBe(1);
+    });
+
+    it('should handle empty results', async () => {
+      mockSalesRepository.find.mockResolvedValue({
+        items: [],
+        skip: 0,
+        limit: 25,
+        totalItems: 0,
+        totalPages: 0,
+      });
+
+      const paginationDto: PaginationQueryDto = {
+        skip: 0,
+        limit: 25,
+      };
+
+      const result = await service.find({ user: 'user-id-123' }, {}, {}, paginationDto);
+
+      expect(result.items).toHaveLength(0);
+      expect(result.totalItems).toBe(0);
+    });
+
+    it('should accept queryFilter, projection, and options', async () => {
+      const paginationDto: PaginationQueryDto = {
+        skip: 10,
+        limit: 10,
+      };
+      const queryFilter = { user: 'user-id-123' };
+      const projection = { total: 1 };
+      const options = { sort: { createdAt: -1 } };
+
+      await service.find(queryFilter, projection, options, paginationDto);
+
+      expect(mockSalesRepository.find).toHaveBeenCalledWith(
+        queryFilter,
+        projection,
+        { skip: 10, limit: 10, ...options },
+      );
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a sale when found', async () => {
+      const result = await service.findOne({ _id: 'sale-id-789', user: 'user-id-123' });
+
+      expect(mockSalesRepository.findOne).toHaveBeenCalledWith(
+        { _id: 'sale-id-789', user: 'user-id-123' },
+        {},
+        {},
+      );
+      expect(result).toEqual(mockSale);
+    });
+
+    it('should throw NotFoundException when sale not found', async () => {
+      mockSalesRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.findOne({ _id: 'nonexistent', user: 'user-id-123' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should accept queryFilter, projection, and options', async () => {
+      const queryFilter = { _id: 'sale-id-789', user: 'user-id-123' };
+      const projection = { saleProducts: 1 };
+      const options = { sort: { createdAt: -1 } };
+
+      await service.findOne(queryFilter, projection, options);
+
+      expect(mockSalesRepository.findOne).toHaveBeenCalledWith(
+        queryFilter,
+        projection,
+        options,
       );
     });
   });

@@ -1,12 +1,19 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { Sale } from '../common/schemas/sale.schema';
 import { SalesRepositoryService } from './repositories/sales-repository.service';
 import { UsersService } from '../users/users.service';
 import { ProductsService } from '../products/products.service';
-import { QueryFilter, Types } from 'mongoose';
+import { ProjectionFields, QueryFilter, QueryOptions, Types } from 'mongoose';
 import { Product } from '../common/schemas/product.schema';
 import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
+import { IPagination } from '../common/interfaces/pagination.interface';
+import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 
 @Injectable()
 export class SalesService {
@@ -29,6 +36,53 @@ export class SalesService {
     );
     const sale = await this.salesRepository.create(data);
     this.logger.debug('Sale created.');
+    return sale;
+  }
+
+  async find(
+    queryFilter: QueryFilter<Sale> = {},
+    projection: ProjectionFields<Sale> = {},
+    options: QueryOptions<Sale> = {},
+    paginationDto: PaginationQueryDto,
+  ): Promise<IPagination<Sale>> {
+    this.logger.debug('Finding sales.');
+
+    const sales = await this.salesRepository.find(queryFilter, projection, {
+      skip: paginationDto.skip,
+      limit: paginationDto.limit,
+      ...options,
+    });
+
+    if (sales.totalItems === 1) {
+      this.logger.debug(`${sales.totalItems} sale found.`);
+    } else {
+      this.logger.debug(`${sales.totalItems} sales found.`);
+    }
+
+    return sales;
+  }
+
+  async findOne(
+    queryFilter: QueryFilter<Sale>,
+    projection: ProjectionFields<Sale> = {},
+    options: QueryOptions<Sale> = {},
+  ): Promise<Sale> {
+    this.logger.debug('Finding sale.');
+
+    const sale = await this.salesRepository.findOne(
+      queryFilter,
+      projection,
+      options,
+    );
+
+    if (!sale) {
+      this.logger.debug(
+        `Sale not found for query: ${JSON.stringify(queryFilter)}.`,
+      );
+      throw new NotFoundException(`Sale not found.`);
+    }
+
+    this.logger.debug('Sale found.');
     return sale;
   }
 
