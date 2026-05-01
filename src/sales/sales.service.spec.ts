@@ -306,18 +306,18 @@ describe('SalesService', () => {
 
       await service.create(userId, createSaleDto);
 
-expect(mockProductsService.count).toHaveBeenCalledWith(
-          expect.objectContaining({
-            user: userId,
-            _id: {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              $in: expect.arrayContaining([
-                mockProduct1._id.toString(),
-                mockProduct2._id.toString(),
-              ]),
-            },
-          }),
-        );
+      expect(mockProductsService.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: userId,
+          _id: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            $in: expect.arrayContaining([
+              mockProduct1._id.toString(),
+              mockProduct2._id.toString(),
+            ]),
+          },
+        }),
+      );
     });
   });
 
@@ -328,10 +328,16 @@ expect(mockProductsService.count).toHaveBeenCalledWith(
         limit: 25,
       };
 
-      const result = await service.find({ user: 'user-id-123' }, {}, {}, paginationDto);
+      const result = await service.find(
+        { user: 'user-id-123' },
+        {},
+        {},
+        paginationDto,
+      );
 
       expect(mockSalesRepository.find).toHaveBeenCalledWith(
         { user: 'user-id-123' },
+        {},
         {},
         { skip: 0, limit: 25 },
       );
@@ -353,7 +359,12 @@ expect(mockProductsService.count).toHaveBeenCalledWith(
         limit: 25,
       };
 
-      const result = await service.find({ user: 'user-id-123' }, {}, {}, paginationDto);
+      const result = await service.find(
+        { user: 'user-id-123' },
+        {},
+        {},
+        paginationDto,
+      );
 
       expect(result.items).toHaveLength(0);
       expect(result.totalItems).toBe(0);
@@ -373,14 +384,18 @@ expect(mockProductsService.count).toHaveBeenCalledWith(
       expect(mockSalesRepository.find).toHaveBeenCalledWith(
         queryFilter,
         projection,
-        { skip: 10, limit: 10, ...options },
+        options,
+        { skip: 10, limit: 10 },
       );
     });
   });
 
   describe('findOne', () => {
     it('should return a sale when found', async () => {
-      const result = await service.findOne({ _id: 'sale-id-789', user: 'user-id-123' });
+      const result = await service.findOne({
+        _id: 'sale-id-789',
+        user: 'user-id-123',
+      });
 
       expect(mockSalesRepository.findOne).toHaveBeenCalledWith(
         { _id: 'sale-id-789', user: 'user-id-123' },

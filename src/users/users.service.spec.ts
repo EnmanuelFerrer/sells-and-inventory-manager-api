@@ -105,6 +105,7 @@ describe('UsersService', () => {
       expect(mockUsersRepository.find).toHaveBeenCalledWith(
         {},
         {},
+        {},
         { skip: 0, limit: 25 },
       );
       expect(result.items).toHaveLength(1);

@@ -149,6 +149,7 @@ describe('BrandsService', () => {
       expect(mockBrandRepository.find).toHaveBeenCalledWith(
         {},
         {},
+        {},
         { skip: 0, limit: 25 },
       );
       expect(result.items).toHaveLength(1);
