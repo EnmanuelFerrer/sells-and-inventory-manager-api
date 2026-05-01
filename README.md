@@ -30,7 +30,7 @@ Then you should define the following environment variables:
 ```bash
 PORT=3000 # optional. Default: 3000
 API_PREFIX=api # optional. Default: api
-MONGODB_URI=mongodb://localhost:27017z
+MONGODB_URI=mongodb://localhost:27017
 ```
 
 Once you have defined the environment variables, you can start the server by running the following command:
