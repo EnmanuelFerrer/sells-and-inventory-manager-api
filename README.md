@@ -19,6 +19,7 @@ This is an API built for a selling and inventory management system that allows y
 [![Node.js](https://skillicons.dev/icons?i=nodejs)](https://nodejs.org/)
 [![TypeScript](https://skillicons.dev/icons?i=typescript)](https://typescriptlang.org/)
 [![MongoDB](https://skillicons.dev/icons?i=mongodb)](https://www.mongodb.com/)
+[![Docker](https://skillicons.dev/icons?i=docker)](https://www.docker.com/)
 
 ## Prerequisites
 
@@ -73,6 +74,78 @@ For production:
 ```bash
 $ npm start
 ```
+
+## Docker Compose
+
+### Prerequisites
+
+- **Docker**: v24.0 or higher
+- **Docker Compose**: v2.0 or higher (included with Docker Desktop)
+
+### Quick Start
+
+1. Clone the repository:
+
+```bash
+$ git clone https://github.com/EnmanuelFerrer/sells-and-inventory-manager-api.git
+```
+
+2. Create a `.env` file (optional — defaults will be used):
+
+```bash
+PORT=3000
+API_PREFIX=api
+MONGODB_URI=mongodb://mongo:27017
+```
+
+3. Start the API and MongoDB:
+
+```bash
+$ docker compose up -d
+```
+
+The API will be available at `http://localhost:3000/api` and MongoDB at `localhost:27017`.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `docker compose up -d` | Start all services in detached mode |
+| `docker compose up` | Start and show logs |
+| `docker compose down` | Stop all services |
+| `docker compose down -v` | Stop and remove volumes (data loss!) |
+| `docker compose build` | Rebuild the API image |
+| `docker compose logs -f` | Follow logs |
+| `docker compose logs -f api` | Follow API logs only |
+| `docker compose restart` | Restart all services |
+
+### Configuration
+
+When using Docker Compose, the following environment variables are used:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| PORT | 3000 | Server port |
+| API_PREFIX | api | API URL prefix |
+| MONGODB_URI | mongodb://mongo:27017 | MongoDB connection (use `mongo` hostname) |
+
+### Building without Compose (Optional)
+
+If you need to run the container manually:
+
+Build the image:
+
+```bash
+$ docker build -t sells-inventory-api .
+```
+
+Run the container:
+
+```bash
+$ docker run -p 3000:3000 -e MONGODB_URI=mongodb://host.docker.internal:27017 sells-inventory-api
+```
+
+> **Note**: On Windows, use `host.docker.internal` to connect to MongoDB running locally.
 
 ## Documentation
 
