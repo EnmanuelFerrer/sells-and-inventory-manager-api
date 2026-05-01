@@ -4,13 +4,34 @@ import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { User } from './users.schema';
 import { Product } from './product.schema';
 
-export type SaleDocument = HydratedDocument<Sale>;
-
+export type SaleProductDocument = HydratedDocument<SaleProduct>;
+@Schema({ _id: false, versionKey: false })
 export class SaleProduct {
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: Product.name,
+  })
   product: Types.ObjectId | Product;
+
+  @Prop({
+    type: Number,
+    required: true,
+    min: 1,
+  })
   quantity: number;
+
+  @Prop({
+    type: Number,
+    required: true,
+    min: 0,
+  })
   unitPrice: number;
 }
+
+export const SaleProductSchema = SchemaFactory.createForClass(SaleProduct);
+
+export type SaleDocument = HydratedDocument<Sale>;
 
 @Schema({
   timestamps: true,
@@ -25,18 +46,12 @@ export class Sale extends AbstractDocument {
   user: Types.ObjectId | User;
 
   @Prop({
-    type: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: Product.name,
-        },
-        quantity: Number,
-        unitPrice: Number,
-      },
-    ],
+    type: [SaleProductSchema],
     required: true,
-    min: 1,
+    validate: {
+      validator: (products: SaleProduct[]) => products.length > 0,
+      message: 'saleProducts must contain at least one item',
+    },
   })
   saleProducts: SaleProduct[];
 
