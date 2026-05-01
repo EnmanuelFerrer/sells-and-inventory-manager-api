@@ -41,6 +41,6 @@ $ pnpm start
 
 ## Documentation
 
-Not implemented yet, but it will be soon implemented with Swagger!
+API documentation is available in [api.md](./api.md).
 
-<!-- You can find the API documentation here: localhost:3000/api/docs -->
+This document contains all available endpoints, request/response formats, and examples.
