@@ -87,7 +87,7 @@ $ npm start
 1. Clone the repository:
 
 ```bash
-$ git clone https://github.com/EnmanuelFerrer/sells-and-inventory-manager-api.git
+$ git clone <repository-url>
 ```
 
 2. Create a `.env` file (optional — defaults will be used):
