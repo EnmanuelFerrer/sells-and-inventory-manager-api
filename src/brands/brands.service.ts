@@ -72,11 +72,12 @@ export class BrandsService {
   ): Promise<IPagination<Brand>> {
     this.logger.debug('Finding all brands.');
 
-    const brands = await this.brandRepository.find(queryFilter, projection, {
-      ...options,
-      skip: paginationDto.skip,
-      limit: paginationDto.limit,
-    });
+    const brands = await this.brandRepository.find(
+      queryFilter,
+      projection,
+      options,
+      paginationDto,
+    );
 
     if (brands.totalItems === 1) {
       this.logger.debug(`${brands.totalItems} brand found.`);

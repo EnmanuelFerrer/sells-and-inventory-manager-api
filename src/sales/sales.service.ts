@@ -47,11 +47,12 @@ export class SalesService {
   ): Promise<IPagination<Sale>> {
     this.logger.debug('Finding sales.');
 
-    const sales = await this.salesRepository.find(queryFilter, projection, {
-      skip: paginationDto.skip,
-      limit: paginationDto.limit,
-      ...options,
-    });
+    const sales = await this.salesRepository.find(
+      queryFilter,
+      projection,
+      options,
+      paginationDto,
+    );
 
     if (sales.totalItems === 1) {
       this.logger.debug(`${sales.totalItems} sale found.`);

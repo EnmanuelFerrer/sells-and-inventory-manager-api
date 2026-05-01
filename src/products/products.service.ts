@@ -86,11 +86,8 @@ export class ProductsService {
     const products = await this.productRepository.find(
       queryFilter,
       projection,
-      {
-        skip: paginationDto.skip,
-        limit: paginationDto.limit,
-        ...options,
-      },
+      options,
+      paginationDto,
     );
 
     if (products.totalItems === 1) {

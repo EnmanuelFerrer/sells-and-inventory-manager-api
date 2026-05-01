@@ -49,11 +49,12 @@ export class UsersService {
     paginationDto: PaginationQueryDto,
   ): Promise<IPagination<UserDocument>> {
     this.logger.debug('Finding all users.');
-    const users = await this.usersRepository.find(queryFilter, projection, {
-      ...options,
-      skip: paginationDto.skip,
-      limit: paginationDto.limit,
-    });
+    const users = await this.usersRepository.find(
+      queryFilter,
+      projection,
+      options,
+      paginationDto,
+    );
 
     if (users.totalItems === 1) {
       this.logger.debug(`${users.totalItems} user found.`);
