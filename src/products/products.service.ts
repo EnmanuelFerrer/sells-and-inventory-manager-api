@@ -7,12 +7,19 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from '../common/schemas/product.schema';
-import { ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
+import {
+  ProjectionFields,
+  QueryFilter,
+  QueryOptions,
+  UpdateQuery,
+} from 'mongoose';
 import { UsersService } from '../users/users.service';
 import { BrandsService } from '../brands/brands.service';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { ProductRepositoryService } from './repositories/product-repository.service';
+import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
+import { ProductStockOperationDto } from './dto/product-stock-operation.dto';
 
 @Injectable()
 export class ProductsService {
@@ -122,6 +129,57 @@ export class ProductsService {
     const count = await this.productRepository.count(queryFilter);
     this.logger.debug('Products counted.');
     return count;
+  }
+
+  async findOneAndUpdate(
+    queryFilter: QueryFilter<Product>,
+    update: UpdateQuery<Product>,
+    options: QueryOptions<Product> = {},
+  ): Promise<Product> {
+    this.logger.debug('Updating product.');
+    const product = await this.productRepository.findOneAndUpdate(
+      queryFilter,
+      update,
+      options,
+    );
+    if (!product) {
+      this.logger.debug(
+        `Product not found for query: ${JSON.stringify(queryFilter)}.`,
+      );
+      throw new NotFoundException(`Product not found.`);
+    }
+    this.logger.debug('Product updated.');
+    return product;
+  }
+
+  async stockOperation(
+    userId: string,
+    productId: string,
+    operationDto: ProductStockOperationDto,
+  ): Promise<Product> {
+    this.logger.debug(
+      `Performing stock operation: ${operationDto.operation} for product ID: ${productId}.`,
+    );
+
+    const update = { $inc: { stock: 0 } };
+    if (operationDto.operation === ProductStockOperationsEnum.INCREMENT) {
+      update.$inc.stock = operationDto.quantity;
+    } else {
+      update.$inc.stock = -operationDto.quantity;
+    }
+
+    const product = await this.productRepository.findOneAndUpdate(
+      { user: userId, _id: productId },
+      update,
+    );
+
+    if (!product) {
+      this.logger.debug(`Product not found for ID: ${productId}.`);
+      throw new NotFoundException(`Product not found.`);
+    }
+
+    this.logger.debug(`Updated product stock: ${product.stock}.`);
+    return product;
   }
 
   private validateCreationData(dto: CreateProductDto): void {

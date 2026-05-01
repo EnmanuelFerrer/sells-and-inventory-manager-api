@@ -1,10 +1,19 @@
-import { Controller, Post, Body, Param, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product } from '../common/schemas/product.schema';
 import { ParseMongoIdsPipe } from '../common/pipes/parse-mongo-ids.pipe';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
+import { ProductStockOperationDto } from './dto/product-stock-operation.dto';
 
 @Controller('users/:userId/brands/:brandId/products')
 export class ProductsController {
@@ -50,6 +59,19 @@ export class ProductsController {
       },
       {},
       {},
+    );
+  }
+
+  @Patch(':productId')
+  async stockOperation(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('productId') productId: string,
+    @Body() stockOperationDto: ProductStockOperationDto,
+  ): Promise<Product> {
+    return await this.productsService.stockOperation(
+      userId,
+      productId,
+      stockOperationDto,
     );
   }
 }
