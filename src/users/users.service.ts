@@ -85,4 +85,11 @@ export class UsersService {
     this.logger.debug('User found.');
     return user;
   }
+
+  async exists(queryFilter: QueryFilter<User>): Promise<void> {
+    this.logger.debug('Checking if user exists.');
+    const userExists = await this.usersRepository.exists(queryFilter);
+    if (!userExists) throw new NotFoundException(`User not found.`);
+    this.logger.debug('User exists.');
+  }
 }
