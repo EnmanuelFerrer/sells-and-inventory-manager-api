@@ -166,4 +166,25 @@ describe('UsersService', () => {
       );
     });
   });
+
+  describe('exists', () => {
+    it('should return without throwing when user exists', async () => {
+      mockUsersRepository.exists.mockResolvedValue(true);
+
+      await expect(
+        service.exists({ _id: 'user-id-123' }),
+      ).resolves.not.toThrow();
+      expect(mockUsersRepository.exists).toHaveBeenCalledWith({
+        _id: 'user-id-123',
+      });
+    });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      mockUsersRepository.exists.mockResolvedValue(false);
+
+      await expect(service.exists({ _id: 'nonexistent' })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });
