@@ -26,18 +26,20 @@ export class RepositoryService<TDocument extends Document> {
     pagination?: PaginationQueryDto,
   ): Promise<IPagination<TDocument>> {
     const [skip, limit] = [pagination?.skip || 0, pagination?.limit || 25];
-    const items = await this.model.find(queryFilter, projection, {
-      skip: pagination?.skip || 0,
-      limit: pagination?.limit || 25,
-      ...options,
-    });
-    const count = await this.model.countDocuments(queryFilter);
+    const [items, count] = await Promise.all([
+      this.model.find(queryFilter, projection, {
+        skip,
+        limit,
+        ...options,
+      }),
+      this.model.countDocuments(queryFilter),
+    ]);
     return {
       items,
-      skip: skip,
-      limit: limit,
+      skip,
+      limit,
       totalItems: count,
-      totalPages: Math.ceil(items.length / limit),
+      totalPages: Math.ceil(count / limit),
     };
   }
 
