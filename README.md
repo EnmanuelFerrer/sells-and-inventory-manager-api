@@ -18,6 +18,7 @@ This is an API built for a selling and inventory management system that allows y
 [![NestJS](https://skillicons.dev/icons?i=nestjs)](https://nestjs.com/)
 [![Node.js](https://skillicons.dev/icons?i=nodejs)](https://nodejs.org/)
 [![TypeScript](https://skillicons.dev/icons?i=typescript)](https://typescriptlang.org/)
+[![Docker](https://skillicons.dev/icons?i=jest)](https://jestjs.io/)
 [![MongoDB](https://skillicons.dev/icons?i=mongodb)](https://www.mongodb.com/)
 [![Docker](https://skillicons.dev/icons?i=docker)](https://www.docker.com/)
 
@@ -45,11 +46,11 @@ $ npm install
 
 Define the following environment variables in a `.env` file:
 
-| Variable     | Description                        | Default        |
-|--------------|------------------------------------|----------------|
-| PORT         | Server port number                 | 3000           |
-| API_PREFIX   | API URL prefix                     | api            |
-| MONGODB_URI  | MongoDB connection string         | mongodb://localhost:27017 |
+| Variable    | Description               | Default                   |
+| ----------- | ------------------------- | ------------------------- |
+| PORT        | Server port number        | 3000                      |
+| API_PREFIX  | API URL prefix            | api                       |
+| MONGODB_URI | MongoDB connection string | mongodb://localhost:27017 |
 
 Example `.env` file:
 
@@ -108,25 +109,25 @@ The API will be available at `http://localhost:3000/api` and MongoDB at `localho
 
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `docker compose up -d` | Start all services in detached mode |
-| `docker compose up` | Start and show logs |
-| `docker compose down` | Stop all services |
-| `docker compose down -v` | Stop and remove volumes (data loss!) |
-| `docker compose build` | Rebuild the API image |
-| `docker compose logs -f` | Follow logs |
-| `docker compose logs -f api` | Follow API logs only |
-| `docker compose restart` | Restart all services |
+| Command                      | Description                          |
+| ---------------------------- | ------------------------------------ |
+| `docker compose up -d`       | Start all services in detached mode  |
+| `docker compose up`          | Start and show logs                  |
+| `docker compose down`        | Stop all services                    |
+| `docker compose down -v`     | Stop and remove volumes (data loss!) |
+| `docker compose build`       | Rebuild the API image                |
+| `docker compose logs -f`     | Follow logs                          |
+| `docker compose logs -f api` | Follow API logs only                 |
+| `docker compose restart`     | Restart all services                 |
 
 ### Configuration
 
 When using Docker Compose, the following environment variables are used:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| PORT | 3000 | Server port |
-| API_PREFIX | api | API URL prefix |
+| Variable    | Default               | Description                               |
+| ----------- | --------------------- | ----------------------------------------- |
+| PORT        | 3000                  | Server port                               |
+| API_PREFIX  | api                   | API URL prefix                            |
 | MONGODB_URI | mongodb://mongo:27017 | MongoDB connection (use `mongo` hostname) |
 
 ### Building without Compose (Optional)
