@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BrandsModule } from './brands/brands.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
+import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SalesModule } from './sales/sales.module';
     BrandsModule,
     ProductsModule,
     SalesModule,
+    ExchangeRatesModule,
 
     // Config imports
     ConfigModule.forRoot({
@@ -27,6 +29,8 @@ import { SalesModule } from './sales/sales.module';
 
         // Database
         MONGODB_URI: Joi.string().required(),
+
+        CENTRAL_BANK_OF_VENEZUELA_URL: Joi.string().required(),
       }),
     }),
 
