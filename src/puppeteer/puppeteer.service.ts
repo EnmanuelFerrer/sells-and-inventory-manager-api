@@ -25,7 +25,7 @@ export class PuppeteerService {
     return page;
   }
 
-  async screenshot(url: string, dir: string) {
+  async screenshot(url: string, dir: string, closePage?: boolean) {
     if (!this.browser) {
       this.logger.error('Puppeteer browser must be initialized.');
       throw new InternalServerErrorException(
@@ -35,19 +35,24 @@ export class PuppeteerService {
     this.logger.debug(`Taking screenshot of website: ${url}.`);
     await fs.mkdir(dir, { recursive: true });
     const screenshotFilePath = path.join(dir, `screenshot-${Date.now()}.png`);
-    const page = await this.newPage();
+    const pages = await this.browser.pages();
+    const page = pages[0];
     await page.goto(url);
     await page.screenshot({
       path: screenshotFilePath,
       captureBeyondViewport: true,
     });
-    await page.close();
+    if (closePage) await page.close();
     this.logger.debug(
       `Screenshot taken successfully and saved in ${screenshotFilePath}.`,
     );
   }
 
-  async getDataFrom<T>(url: string, gotoCode: () => T): Promise<T> {
+  async getDataFrom<T>(
+    url: string,
+    gotoCode: () => T,
+    closePage?: boolean,
+  ): Promise<T> {
     if (!this.browser) {
       this.logger.error('Puppeteer browser must be initialized.');
       throw new InternalServerErrorException(
@@ -55,11 +60,12 @@ export class PuppeteerService {
       );
     }
     this.logger.debug(`About to get data from website: ${url}.`);
-    const page = await this.newPage();
-    await this.newPage();
+    const pages = await this.browser.pages();
+    const page = pages[0];
     await page.goto(url);
     const result = await page.evaluate(gotoCode);
-    await page.close();
+    this.logger.debug(`$$$ [is page going to be closed?] > ${closePage}`);
+    if (closePage) await page.close();
     this.logger.debug('Data obtained successfully.');
     return result;
   }
