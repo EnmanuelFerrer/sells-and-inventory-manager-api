@@ -14,7 +14,7 @@ export class ExchangeRatesService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.debug('Executing module initialization tasks.');
-    await this.getDollarExchangeRate();
+    await this.getBolivarExchangeRate();
     this.logger.debug('Initialization tasks completed.');
   }
 
@@ -23,12 +23,12 @@ export class ExchangeRatesService implements OnModuleInit {
     this.logger.debug(
       'Daily cronological task started: Getting VES exchange rate for Dollar.',
     );
-    await this.getDollarExchangeRate();
+    await this.getBolivarExchangeRate();
   }
 
-  async getDollarExchangeRate(): Promise<number> {
+  async getBolivarExchangeRate(): Promise<number> {
     this.logger.debug(
-      'About to perform scrappint on Banco Central de Venezuela website to get the exchange rate of VES for Dollar.',
+      'About to perform scrapping on Banco Central de Venezuela website to get the exchange rate of VES for USD.',
     );
     await this.puppeteerService.initializeBrowser();
     const exchangeRate: number =
@@ -45,7 +45,7 @@ export class ExchangeRatesService implements OnModuleInit {
         },
       );
     await this.puppeteerService.closeBrowser();
-    this.logger.debug('VES exchange rate for Dollar obtained.');
+    this.logger.debug('Exchange rate of VES for USD obtained.');
     return exchangeRate;
   }
 }
