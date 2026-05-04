@@ -25,4 +25,4 @@ export class ExchangeRate extends AbstractDocument {
   amount: number;
 }
 
-export const EchangeRateSchema = SchemaFactory.createForClass(ExchangeRate);
+export const ExchangeRateSchema = SchemaFactory.createForClass(ExchangeRate);
