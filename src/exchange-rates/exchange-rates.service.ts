@@ -24,22 +24,19 @@ export class ExchangeRatesService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.debug('Executing module initialization tasks.');
-    await this.getBolivarExchangeRate();
+    await this.getDollarExchangeRate();
     this.logger.debug('Initialization tasks completed.');
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_10AM)
   async handleCron() {
-    this.logger.debug(
-      'Daily cronological task started: Getting VES exchange rate for Dollar.',
-    );
-    await this.getBolivarExchangeRate();
+    this.logger.debug('Daily tasks for 10:00 A.M. started.');
+    await this.getDollarExchangeRate();
+    this.logger.debug('Daily tasks executed.');
   }
 
-  async getBolivarExchangeRate(): Promise<void> {
-    this.logger.debug(
-      'About to perform scrapping on Banco Central de Venezuela website to get the exchange rate of VES for USD.',
-    );
+  async getDollarExchangeRate(): Promise<void> {
+    this.logger.debug('Getting USD exchange rate.');
     await this.puppeteerService.initializeBrowser();
     const url = this.configService.getOrThrow<string>(
       'CENTRAL_BANK_OF_VENEZUELA_URL',
@@ -58,18 +55,21 @@ export class ExchangeRatesService implements OnModuleInit {
         },
         false,
       );
-    this.logger.debug('Exchange rate of VES for USD obtained.');
+    this.logger.debug('USD exchange rate obtained.');
     await this.puppeteerService.screenshot(url, 'screenshots', true);
     await this.puppeteerService.closeBrowser();
-    await this.saveExchangeRate(CurrenciesEnum.VES, exchangeRate);
+    await this.saveExchangeRate(CurrenciesEnum.USD, exchangeRate);
   }
 
   async saveExchangeRate(
     currency: CurrenciesEnum,
     amount: number,
   ): Promise<void> {
-    this.logger.debug(`Saving exchange rate for currency: ${currency}.`);
-    const exists = await this.exchangeRatesRepository.exists({ amount });
+    this.logger.debug(`Saving ${currency} exchange rate.`);
+    const exists = await this.exchangeRatesRepository.exists({
+      currency,
+      amount,
+    });
     if (exists) {
       this.logger.debug(
         'Exchange rate saving aborted because it currently exists.',
@@ -84,19 +84,15 @@ export class ExchangeRatesService implements OnModuleInit {
   }
 
   async findLast(currency: CurrenciesEnum): Promise<ExchangeRate> {
-    this.logger.debug(
-      `Finding last registered exchange rate for currency ${currency}.`,
-    );
+    this.logger.debug(`Finding last registered ${currency} exchange rate.`);
     const exchangeRate = await this.exchangeRatesRepository.findOne(
       { currency },
-      { amount: 1 },
+      {},
       { sort: { createdAt: -1 } },
     );
     if (!exchangeRate) {
-      this.logger.debug(`No exchange rate found for currency ${currency}.`);
-      throw new NotFoundException(
-        `No exchange rate found for currency ${currency}.`,
-      );
+      this.logger.debug(`Exchange rate not found for currency: ${currency}.`);
+      throw new NotFoundException(`Exchange rate not found.`);
     }
     return exchangeRate;
   }
