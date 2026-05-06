@@ -20,6 +20,8 @@ import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { ProductRepositoryService } from './repositories/product-repository.service';
 import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
 import { ProductStockOperationDto } from './dto/product-stock-operation.dto';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { CurrenciesEnum } from '../common/enums/currencies.enum';
 
 @Injectable()
 export class ProductsService {
@@ -30,6 +32,7 @@ export class ProductsService {
 
     private readonly usersService: UsersService,
     private readonly brandsService: BrandsService,
+    private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
   async create(
@@ -57,7 +60,7 @@ export class ProductsService {
 
     const data: Partial<Product> = {
       ...createProductDto,
-      ...this.calculateGainOrPrice(createProductDto),
+      ...(await this.calculateGainOrPrice(createProductDto)),
       user,
       brand,
     };
@@ -186,7 +189,7 @@ export class ProductsService {
       );
     }
 
-    if (!dto.gain && !dto.price) {
+    if (dto.gain === undefined && dto.price === undefined) {
       throw new ConflictException('Gain or price must be set.');
     }
 
@@ -203,10 +206,11 @@ export class ProductsService {
     }
   }
 
-  private calculateGainOrPrice(dto: CreateProductDto): {
+  private async calculateGainOrPrice(dto: CreateProductDto): Promise<{
+    cost: number;
     gain: number;
     price: number;
-  } {
+  }> {
     // Calculate gain and price
     // 1. If gain is set, price must be calculated
     // 2. If price is set, gain must be calculated\
@@ -214,21 +218,40 @@ export class ProductsService {
     // We assume that cost is always set based on the validations
 
     if (dto.gain !== undefined && dto.cost > 0) {
+      if (dto?.currency && dto.currency !== CurrenciesEnum.USD) {
+        const exchangeRate = await this.exchangeRatesService.findLast(
+          dto.currency,
+        );
+
+        dto.cost = dto.cost / exchangeRate.amount;
+      }
       const price = dto.cost * (1 + dto.gain / 100);
 
       return {
+        cost: Number(dto.cost.toFixed(2)),
         gain: Number(dto.gain.toFixed(2)),
         price: Number(price.toFixed(2)),
       };
     } else if (dto.price !== undefined && dto.cost > 0) {
+      if (dto?.currency && dto.currency !== CurrenciesEnum.USD) {
+        const exchangeRate = await this.exchangeRatesService.findLast(
+          dto.currency,
+        );
+
+        dto.cost = dto.cost / exchangeRate.amount;
+        dto.price = dto.price / exchangeRate.amount;
+      }
+
       const gain = (dto.price / dto.cost - 1) * 100; // Assume cost is set if price is
 
       return {
+        cost: Number(dto.cost.toFixed(2)),
         gain: Number(gain.toFixed(2)),
         price: Number(dto.price.toFixed(2)), // Assume price is set if gain is not
       };
     } else {
       return {
+        cost: 0,
         gain: 0,
         price: 0,
       };
