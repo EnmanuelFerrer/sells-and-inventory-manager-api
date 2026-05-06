@@ -64,7 +64,6 @@ export class PuppeteerService {
     const page = pages[0];
     await page.goto(url);
     const result = await page.evaluate(gotoCode);
-    this.logger.debug(`$$$ [is page going to be closed?] > ${closePage}`);
     if (closePage) await page.close();
     this.logger.debug('Data obtained successfully.');
     return result;
