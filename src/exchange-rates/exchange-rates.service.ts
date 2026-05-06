@@ -1,9 +1,15 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PuppeteerService } from '../puppeteer/puppeteer.service';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ExchangeRatesRepositoryService } from './repositories/exchange-rates-repository.service';
 import { CurrenciesEnum } from '../common/enums/currencies.enum';
+import { ExchangeRate } from '../common/schemas/exchange-rate.schema';
 
 @Injectable()
 export class ExchangeRatesService implements OnModuleInit {
@@ -18,7 +24,8 @@ export class ExchangeRatesService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.debug('Executing module initialization tasks.');
-    await this.getBolivarExchangeRate();
+    // await this.getBolivarExchangeRate();
+    await Promise.all([]);
     this.logger.debug('Initialization tasks completed.');
   }
 
@@ -75,5 +82,23 @@ export class ExchangeRatesService implements OnModuleInit {
       amount,
     });
     this.logger.debug('Exchange rate saved.');
+  }
+
+  async findLast(currency: CurrenciesEnum): Promise<ExchangeRate> {
+    this.logger.debug(
+      `Finding last registered exchange rate for currency ${currency}.`,
+    );
+    const exchangeRate = await this.exchangeRatesRepository.findOne(
+      { currency },
+      { amount: 1 },
+      { sort: { createdAt: -1 } },
+    );
+    if (!exchangeRate) {
+      this.logger.debug(`No exchange rate found for currency ${currency}.`);
+      throw new NotFoundException(
+        `No exchange rate found for currency ${currency}.`,
+      );
+    }
+    return exchangeRate;
   }
 }
