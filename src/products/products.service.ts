@@ -58,11 +58,16 @@ export class ProductsService {
         return (await this.brandsService.findOne({ _id: brandId }))._id;
       });
 
+    const { cost, gain, price } =
+      await this.calculateCreationValues(createProductDto);
+
     const data: Partial<Product> = {
       ...createProductDto,
-      ...(await this.calculateGainOrPrice(createProductDto)),
       user,
       brand,
+      cost,
+      gain,
+      price,
     };
 
     const product = await this.productRepository.create(data);
@@ -183,78 +188,96 @@ export class ProductsService {
   }
 
   private validateCreationData(dto: CreateProductDto): void {
-    if (dto.gain && dto.price) {
+    this.logger.debug('Executing data pre-validations.');
+
+    if (dto.cost === 0) {
+      if (dto?.gain !== undefined && dto.gain > 0) {
+        throw new ConflictException('Gain must be 0 when cost is 0.');
+      }
+      if (dto?.price !== undefined && dto.price > 0) {
+        throw new ConflictException('Price must be 0 when cost is 0.');
+      }
+    }
+
+    if (dto?.gain === undefined && dto?.price === undefined) {
+      throw new ConflictException('Gain or price must be set.');
+    }
+
+    if (dto?.gain !== undefined && dto?.price !== undefined) {
       throw new ConflictException(
         'Gain and price cannot be set at the same time.',
       );
     }
 
-    if (dto.gain === undefined && dto.price === undefined) {
-      throw new ConflictException('Gain or price must be set.');
+    if (dto?.gain !== undefined && dto.gain > 30) {
+      throw new ConflictException('Gain must not be greater than 30%');
     }
 
-    if (dto.price !== undefined) {
-      const gain = (dto.price / dto.cost - 1) * 100;
+    if (dto?.price !== undefined) {
+      this.logger.debug('messagemessagemessagemessagemessagemessage');
+      if (dto.price < dto.cost) {
+        throw new ConflictException(
+          'Price must be greater than or equal to cost.',
+        );
+      }
 
+      const gain = (Math.abs(dto.price - dto.cost) / dto.cost) * 100;
       if (gain > 30) {
         throw new ConflictException('Gain must not be greater than 30%.');
       }
-
-      if (dto.price < dto.cost) {
-        throw new ConflictException('Price must be greater than cost.');
-      }
     }
+
+    this.logger.debug('Pre-validations executed.');
   }
 
-  private async calculateGainOrPrice(dto: CreateProductDto): Promise<{
+  private async calculateCreationValues(dto: CreateProductDto): Promise<{
     cost: number;
     gain: number;
     price: number;
   }> {
-    // Calculate gain and price
-    // 1. If gain is set, price must be calculated
-    // 2. If price is set, gain must be calculated\
+    this.logger.debug('Calculating cost, gain and price final values.');
 
-    // We assume that cost is always set based on the validations
-
-    if (dto.gain !== undefined && dto.cost > 0) {
-      if (dto?.currency && dto.currency !== CurrenciesEnum.USD) {
-        const exchangeRate = await this.exchangeRatesService.findLast(
-          dto.currency,
-        );
-
-        dto.cost = dto.cost / exchangeRate.amount;
-      }
-      const price = dto.cost * (1 + dto.gain / 100);
-
-      return {
-        cost: Number(dto.cost.toFixed(2)),
-        gain: Number(dto.gain.toFixed(2)),
-        price: Number(price.toFixed(2)),
-      };
-    } else if (dto.price !== undefined && dto.cost > 0) {
-      if (dto?.currency && dto.currency !== CurrenciesEnum.USD) {
-        const exchangeRate = await this.exchangeRatesService.findLast(
-          dto.currency,
-        );
-
-        dto.cost = dto.cost / exchangeRate.amount;
-        dto.price = dto.price / exchangeRate.amount;
-      }
-
-      const gain = (dto.price / dto.cost - 1) * 100; // Assume cost is set if price is
-
-      return {
-        cost: Number(dto.cost.toFixed(2)),
-        gain: Number(gain.toFixed(2)),
-        price: Number(dto.price.toFixed(2)), // Assume price is set if gain is not
-      };
-    } else {
+    if (dto.cost === 0) {
       return {
         cost: 0,
         gain: 0,
         price: 0,
       };
     }
+
+    if (dto?.gain !== undefined) {
+      if (dto?.currency !== undefined && dto.currency !== CurrenciesEnum.VES) {
+        const exchangeRate = await this.exchangeRatesService.findLast(
+          dto.currency,
+        );
+        dto.cost = dto.cost * exchangeRate.amount;
+      }
+
+      const increment = dto.cost * (dto.gain / 100);
+      const price = dto.cost + increment;
+
+      return {
+        cost: Number(dto.cost.toFixed(2)),
+        gain: Number(dto.gain.toFixed(2)),
+        price: Number(price.toFixed(2)),
+      };
+    }
+
+    if (dto?.currency && dto.currency !== CurrenciesEnum.VES) {
+      const exchangeRate = await this.exchangeRatesService.findLast(
+        dto.currency,
+      );
+
+      dto.cost = dto.cost * exchangeRate.amount;
+      dto.price = dto.price! * exchangeRate.amount;
+    }
+
+    const gain = (Math.abs(dto.price! - dto.cost) / dto.cost) * 100;
+
+    return {
+      cost: Number(dto.cost.toFixed(2)),
+      gain: Number(gain.toFixed(2)),
+      price: Number(dto.price!.toFixed(2)),
+    };
   }
 }
