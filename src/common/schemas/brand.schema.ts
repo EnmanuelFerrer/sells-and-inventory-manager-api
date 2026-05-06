@@ -11,14 +11,10 @@ export type BrandDocument = HydratedDocument<Brand>;
 })
 export class Brand extends AbstractDocument {
   @Prop({
-    type: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: User.name,
-      },
-    ],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: User.name,
   })
-  users: Types.ObjectId[] | User[];
+  user: Types.ObjectId | User;
 
   @Prop({
     type: String,

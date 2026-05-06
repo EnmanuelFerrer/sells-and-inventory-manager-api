@@ -36,7 +36,7 @@ describe('BrandsService', () => {
   const mockBrand: Brand = {
     _id: new Types.ObjectId(),
     name: 'testbrand',
-    users: [mockUser],
+    user: mockUser,
   };
 
   const mockPaginatedResult: IPagination<Brand> = {
@@ -209,26 +209,6 @@ describe('BrandsService', () => {
         projection,
         options,
       );
-    });
-  });
-
-  describe('appendUser', () => {
-    it('should append user to brand', async () => {
-      await service.appendUser('brand-id-123', 'user-id-123');
-
-      expect(mockBrandRepository.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'brand-id-123' },
-        { $push: { users: 'user-id-123' } },
-        { returnDocument: 'after' },
-      );
-    });
-
-    it('should throw InternalServerErrorException if update fails', async () => {
-      mockBrandRepository.findOneAndUpdate.mockResolvedValue(null);
-
-      await expect(
-        service.appendUser('brand-id-123', 'user-id-123'),
-      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

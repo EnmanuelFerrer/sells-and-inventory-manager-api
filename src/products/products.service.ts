@@ -45,18 +45,7 @@ export class ProductsService {
     this.validateCreationData(createProductDto);
 
     const user = await this.usersService.findOne({ _id: userId });
-    const brand = await this.brandsService
-      .findOne({
-        _id: brandId,
-        users: {
-          $elemMatch: { $eq: userId },
-        },
-      })
-      .catch(async () => {
-        this.logger.debug('Current user not linked to brand. Linking now.');
-        await this.brandsService.appendUser(brandId, userId);
-        return (await this.brandsService.findOne({ _id: brandId }))._id;
-      });
+    const brand = await this.brandsService.findOne({ _id: brandId, user });
 
     const { cost, gain, price } =
       await this.calculateCreationValues(createProductDto);

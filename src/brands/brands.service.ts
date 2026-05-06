@@ -1,7 +1,6 @@
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -41,27 +40,11 @@ export class BrandsService {
     }
 
     const brand = await this.brandRepository.create({
+      user,
       name: createBrandDto.name,
     });
-    this.logger.debug('Brand created.', 'Adding user to brand.');
-
-    const updatedBrand = await this.brandRepository.findOneAndUpdate(
-      { _id: brand._id },
-      { $push: { users: user } },
-      { returnDocument: 'after' },
-    );
-    if (!updatedBrand) {
-      this.logger.error('Error adding user to brand.');
-      this.logger.debug('Deleting brand.');
-      await this.brandRepository.findOneAndDelete({ _id: brand._id });
-      this.logger.debug('Brand deleted.');
-      throw new InternalServerErrorException(
-        'Error linking current user to brand. Try again later.',
-      );
-    }
-
-    this.logger.debug('User added to brand.');
-    return updatedBrand;
+    this.logger.debug('Brand created.');
+    return brand;
   }
 
   async findAll(
@@ -107,21 +90,5 @@ export class BrandsService {
     }
     this.logger.debug('Brand found.');
     return brand;
-  }
-
-  async appendUser(brandId: string, userId: string): Promise<void> {
-    this.logger.debug('Adding user to brand.');
-    const updatedBrand = await this.brandRepository.findOneAndUpdate(
-      { _id: brandId },
-      { $push: { users: userId } },
-      { returnDocument: 'after' },
-    );
-    if (!updatedBrand) {
-      this.logger.error('Error adding user to brand.');
-      throw new InternalServerErrorException(
-        'Error linking current user to brand. Try again later.',
-      );
-    }
-    this.logger.debug('User added to brand.');
   }
 }
