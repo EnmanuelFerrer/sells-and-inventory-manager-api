@@ -6,6 +6,7 @@ import { Product, ProductSchema } from '../common/schemas/product.schema';
 import { UsersModule } from '../users/users.module';
 import { BrandsModule } from '../brands/brands.module';
 import { ProductRepositoryService } from './repositories/product-repository.service';
+import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ProductRepositoryService } from './repositories/product-repository.serv
 
     UsersModule,
     BrandsModule,
+    ExchangeRatesModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService, ProductRepositoryService],
