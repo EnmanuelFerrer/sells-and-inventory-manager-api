@@ -24,8 +24,7 @@ export class ExchangeRatesService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.debug('Executing module initialization tasks.');
-    // await this.getBolivarExchangeRate();
-    await Promise.all([]);
+    await this.getBolivarExchangeRate();
     this.logger.debug('Initialization tasks completed.');
   }
 
