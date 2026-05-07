@@ -3,6 +3,7 @@ import { AbstractDocument } from './abstract.schema';
 import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { User } from './users.schema';
 import { Product } from './product.schema';
+import { ExchangeRate } from './exchange-rate.schema';
 
 export type SaleProductDocument = HydratedDocument<SaleProduct>;
 @Schema({ _id: false, versionKey: false })
@@ -44,6 +45,13 @@ export class Sale extends AbstractDocument {
     ref: User.name,
   })
   user: Types.ObjectId | User;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: ExchangeRate.name,
+  })
+  exchangeRate: Types.ObjectId | ExchangeRate;
 
   @Prop({
     type: [SaleProductSchema],

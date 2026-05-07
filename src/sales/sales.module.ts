@@ -7,6 +7,7 @@ import { SalesRepositoryService } from './repositories/sales-repository.service'
 import { UsersModule } from '../users/users.module';
 import { BrandsModule } from '../brands/brands.module';
 import { ProductsModule } from '../products/products.module';
+import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ProductsModule } from '../products/products.module';
     UsersModule,
     BrandsModule,
     ProductsModule,
+    ExchangeRatesModule,
   ],
   controllers: [SalesController],
   providers: [SalesService, SalesRepositoryService],

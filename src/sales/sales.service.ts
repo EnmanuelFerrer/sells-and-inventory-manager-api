@@ -14,6 +14,8 @@ import { Product } from '../common/schemas/product.schema';
 import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { CurrenciesEnum } from '../common/enums/currencies.enum';
 
 @Injectable()
 export class SalesService {
@@ -24,6 +26,7 @@ export class SalesService {
 
     private readonly usersService: UsersService,
     private readonly productsService: ProductsService,
+    private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
   async create(userId: string, createSaleDto: CreateSaleDto): Promise<Sale> {
@@ -135,8 +138,12 @@ export class SalesService {
     userId: string,
     dto: CreateSaleDto,
   ): Promise<Partial<Sale>> {
+    const exchangeRate = await this.exchangeRatesService.findLast(
+      CurrenciesEnum.USD,
+    );
     const data: Partial<Sale> = {
       user: new Types.ObjectId(userId),
+      exchangeRate,
       saleProducts: [],
       total: 0,
     };
