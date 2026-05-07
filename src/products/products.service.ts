@@ -46,6 +46,15 @@ export class ProductsService {
 
     const user = await this.usersService.findOne({ _id: userId });
     const brand = await this.brandsService.findOne({ _id: brandId, user });
+    const productExist = await this.productRepository.exists({
+      name: { $regex: createProductDto.name, $options: 'i' },
+    });
+    if (productExist) {
+      this.logger.debug(
+        `Product whit same name ${createProductDto.name} exist.`,
+      );
+      throw new ConflictException('Product already exist.');
+    }
 
     const { cost, gain, price } =
       await this.calculateCreationValues(createProductDto);
