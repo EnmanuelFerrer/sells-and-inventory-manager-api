@@ -56,7 +56,10 @@ export class ExchangeRatesService implements OnModuleInit {
         false,
       );
     this.logger.debug('USD exchange rate obtained.');
-    await this.puppeteerService.screenshot(url, 'screenshots', true);
+    await this.puppeteerService.screenshot(url, 'screenshots', true, {
+      height: 700,
+      width: 1080,
+    });
     await this.puppeteerService.closeBrowser();
     await this.saveExchangeRate(CurrenciesEnum.USD, exchangeRate);
   }
