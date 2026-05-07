@@ -25,7 +25,12 @@ export class PuppeteerService {
     return page;
   }
 
-  async screenshot(url: string, dir: string, closePage?: boolean) {
+  async screenshot(
+    url: string,
+    dir: string,
+    closePage?: boolean,
+    viewPortSize?: { height: number; width: number },
+  ) {
     if (!this.browser) {
       this.logger.error('Puppeteer browser must be initialized.');
       throw new InternalServerErrorException(
@@ -37,6 +42,7 @@ export class PuppeteerService {
     const screenshotFilePath = path.join(dir, `screenshot-${Date.now()}.png`);
     const pages = await this.browser.pages();
     const page = pages[0];
+    await page.setViewport(viewPortSize || { width: 640, height: 480 });
     await page.goto(url);
     await page.screenshot({
       path: screenshotFilePath,
