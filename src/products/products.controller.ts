@@ -52,10 +52,8 @@ export class ProductsController {
     return await this.productsService.findOne(
       {
         _id: productId,
-        'brand._id': brandId,
-        users: {
-          $elemMatch: { $eq: userId },
-        },
+        user: userId,
+        brand: brandId,
       },
       {},
       {},
