@@ -244,11 +244,11 @@ export class ProductsService {
     }
 
     if (dto?.gain !== undefined) {
-      if (dto?.currency !== undefined && dto.currency !== CurrenciesEnum.VES) {
+      if (dto?.currency !== undefined && dto.currency === CurrenciesEnum.VES) {
         const exchangeRate = await this.exchangeRatesService.findLast(
-          dto.currency,
+          CurrenciesEnum.USD,
         );
-        dto.cost = dto.cost * exchangeRate.amount;
+        dto.cost = dto.cost / exchangeRate.amount;
       }
 
       const increment = dto.cost * (dto.gain / 100);
@@ -261,13 +261,13 @@ export class ProductsService {
       };
     }
 
-    if (dto?.currency && dto.currency !== CurrenciesEnum.VES) {
+    if (dto?.currency && dto.currency === CurrenciesEnum.VES) {
       const exchangeRate = await this.exchangeRatesService.findLast(
-        dto.currency,
+        CurrenciesEnum.USD,
       );
 
-      dto.cost = dto.cost * exchangeRate.amount;
-      dto.price = dto.price! * exchangeRate.amount;
+      dto.cost = dto.cost / exchangeRate.amount;
+      dto.price = dto.price! / exchangeRate.amount;
     }
 
     const gain = (Math.abs(dto.price! - dto.cost) / dto.cost) * 100;
