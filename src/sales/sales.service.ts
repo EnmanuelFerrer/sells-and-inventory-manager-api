@@ -37,9 +37,19 @@ export class SalesService {
       userId,
       createSaleDto,
     );
-    const sale = await this.salesRepository.create(data);
+    const createdSale = await this.salesRepository.create(data);
     this.logger.debug('Sale created.');
-    return sale;
+
+    return (await this.salesRepository.findOne(
+      { _id: createdSale._id },
+      {},
+      {
+        populate: {
+          path: 'saleProducts.product',
+          select: ['name'],
+        },
+      },
+    )) as Sale;
   }
 
   async find(
@@ -53,7 +63,13 @@ export class SalesService {
     const sales = await this.salesRepository.find(
       queryFilter,
       projection,
-      options,
+      {
+        ...options,
+        populate: {
+          path: 'saleProducts.product',
+          select: ['name', 'price'],
+        },
+      },
       paginationDto,
     );
 
@@ -73,11 +89,13 @@ export class SalesService {
   ): Promise<Sale> {
     this.logger.debug('Finding sale.');
 
-    const sale = await this.salesRepository.findOne(
-      queryFilter,
-      projection,
-      options,
-    );
+    const sale = await this.salesRepository.findOne(queryFilter, projection, {
+      ...options,
+      populate: {
+        path: 'saleProducts.product',
+        select: ['name', 'price'],
+      },
+    });
 
     if (!sale) {
       this.logger.debug(
