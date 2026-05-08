@@ -8,10 +8,13 @@ import { ProductsService } from './products.service';
 import { ProductRepositoryService } from './repositories/product-repository.service';
 import { UsersService } from '../users/users.service';
 import { BrandsService } from '../brands/brands.service';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { Product } from '../common/schemas/product.schema';
+import { ExchangeRate } from '../common/schemas/exchange-rate.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
+import { CurrenciesEnum } from '../common/enums/currencies.enum';
 import { Types } from 'mongoose';
 
 describe('ProductsService', () => {
@@ -21,6 +24,7 @@ describe('ProductsService', () => {
     find: jest.Mock;
     findOne: jest.Mock;
     count: jest.Mock;
+    exists: jest.Mock;
   };
   let mockUsersService: {
     findOne: jest.Mock;
@@ -28,6 +32,15 @@ describe('ProductsService', () => {
   let mockBrandsService: {
     findOne: jest.Mock;
     appendUser: jest.Mock;
+  };
+  let mockExchangeRatesService: {
+    findLast: jest.Mock;
+  };
+
+  const mockExchangeRate: ExchangeRate = {
+    _id: new Types.ObjectId(),
+    currency: CurrenciesEnum.USD,
+    amount: 499.8608,
   };
 
   const mockUser = {
@@ -69,6 +82,7 @@ describe('ProductsService', () => {
       find: jest.fn().mockResolvedValue(mockPaginatedResult),
       findOne: jest.fn().mockResolvedValue(mockProduct),
       count: jest.fn().mockResolvedValue(5),
+      exists: jest.fn().mockResolvedValue(false),
     };
 
     mockUsersService = {
@@ -78,6 +92,10 @@ describe('ProductsService', () => {
     mockBrandsService = {
       findOne: jest.fn().mockResolvedValue(mockBrand),
       appendUser: jest.fn().mockResolvedValue(mockBrand),
+    };
+
+    mockExchangeRatesService = {
+      findLast: jest.fn().mockResolvedValue(mockExchangeRate),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -94,6 +112,10 @@ describe('ProductsService', () => {
         {
           provide: BrandsService,
           useValue: mockBrandsService,
+        },
+        {
+          provide: ExchangeRatesService,
+          useValue: mockExchangeRatesService,
         },
       ],
     }).compile();
@@ -123,7 +145,7 @@ describe('ProductsService', () => {
       });
       expect(mockBrandsService.findOne).toHaveBeenCalledWith({
         _id: brandId,
-        users: { $elemMatch: { $eq: userId } },
+        user: mockUser,
       });
       expect(mockProductRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -202,26 +224,6 @@ describe('ProductsService', () => {
       await expect(
         service.create(userId, brandId, createProductDto),
       ).rejects.toThrow(ConflictException);
-    });
-
-    it('should link user to brand if not already linked', async () => {
-      const createProductDto: CreateProductDto = {
-        name: 'Test Product',
-        cost: 100,
-        gain: 20,
-      };
-
-      mockBrandsService.findOne
-        .mockRejectedValueOnce(new NotFoundException())
-        .mockResolvedValueOnce(mockBrand);
-
-      await service.create(userId, brandId, createProductDto);
-
-      expect(mockBrandsService.appendUser).toHaveBeenCalledWith(
-        brandId,
-        userId,
-      );
-      expect(mockBrandsService.findOne).toHaveBeenCalledTimes(2);
     });
 
     it('should throw InternalServerErrorException if product creation fails', async () => {

@@ -4,10 +4,13 @@ import { SalesService } from './sales.service';
 import { SalesRepositoryService } from './repositories/sales-repository.service';
 import { UsersService } from '../users/users.service';
 import { ProductsService } from '../products/products.service';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { Sale } from '../common/schemas/sale.schema';
 import { Product } from '../common/schemas/product.schema';
+import { ExchangeRate } from '../common/schemas/exchange-rate.schema';
 import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
+import { CurrenciesEnum } from '../common/enums/currencies.enum';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { Types } from 'mongoose';
@@ -27,6 +30,15 @@ describe('SalesService', () => {
     find: jest.Mock;
     findOne: jest.Mock;
     stockOperation: jest.Mock;
+  };
+  let mockExchangeRatesService: {
+    findLast: jest.Mock;
+  };
+
+  const mockExchangeRate: ExchangeRate = {
+    _id: new Types.ObjectId(),
+    currency: CurrenciesEnum.USD,
+    amount: 499.8608,
   };
 
   const mockProduct1: Product = {
@@ -105,6 +117,10 @@ describe('SalesService', () => {
       stockOperation: jest.fn().mockResolvedValue(mockProduct1),
     };
 
+    mockExchangeRatesService = {
+      findLast: jest.fn().mockResolvedValue(mockExchangeRate),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SalesService,
@@ -119,6 +135,10 @@ describe('SalesService', () => {
         {
           provide: ProductsService,
           useValue: mockProductsService,
+        },
+        {
+          provide: ExchangeRatesService,
+          useValue: mockExchangeRatesService,
         },
       ],
     }).compile();
@@ -338,7 +358,12 @@ describe('SalesService', () => {
       expect(mockSalesRepository.find).toHaveBeenCalledWith(
         { user: 'user-id-123' },
         {},
-        {},
+        expect.objectContaining({
+          populate: {
+            path: 'saleProducts.product',
+            select: ['name', 'price'],
+          },
+        }),
         { skip: 0, limit: 25 },
       );
       expect(result.items).toHaveLength(1);
@@ -384,7 +409,13 @@ describe('SalesService', () => {
       expect(mockSalesRepository.find).toHaveBeenCalledWith(
         queryFilter,
         projection,
-        options,
+        expect.objectContaining({
+          populate: {
+            path: 'saleProducts.product',
+            select: ['name', 'price'],
+          },
+          ...options,
+        }),
         { skip: 10, limit: 10 },
       );
     });
@@ -400,7 +431,12 @@ describe('SalesService', () => {
       expect(mockSalesRepository.findOne).toHaveBeenCalledWith(
         { _id: 'sale-id-789', user: 'user-id-123' },
         {},
-        {},
+        expect.objectContaining({
+          populate: {
+            path: 'saleProducts.product',
+            select: ['name', 'price'],
+          },
+        }),
       );
       expect(result).toEqual(mockSale);
     });
@@ -423,7 +459,13 @@ describe('SalesService', () => {
       expect(mockSalesRepository.findOne).toHaveBeenCalledWith(
         queryFilter,
         projection,
-        options,
+        expect.objectContaining({
+          populate: {
+            path: 'saleProducts.product',
+            select: ['name', 'price'],
+          },
+          ...options,
+        }),
       );
     });
   });

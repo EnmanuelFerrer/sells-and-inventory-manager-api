@@ -6,11 +6,7 @@ import { Brand } from '../common/schemas/brand.schema';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
-import {
-  ConflictException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { User } from '../common/schemas/users.schema';
 
@@ -98,13 +94,9 @@ describe('BrandsService', () => {
         name: { $regex: createBrandDto.name, $options: 'i' },
       });
       expect(mockBrandRepository.create).toHaveBeenCalledWith({
+        user: mockUser,
         name: createBrandDto.name,
       });
-      expect(mockBrandRepository.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: mockBrand._id },
-        { $push: { users: mockUser } },
-        { returnDocument: 'after' },
-      );
       expect(result).toEqual(mockBrand);
     });
 
@@ -124,16 +116,10 @@ describe('BrandsService', () => {
       );
     });
 
-    it('should throw InternalServerErrorException if error linking user to brand', async () => {
-      mockBrandRepository.findOneAndUpdate.mockResolvedValue(null);
+    it('should return the created brand', async () => {
+      const result = await service.create(userId, createBrandDto);
 
-      await expect(service.create(userId, createBrandDto)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-
-      expect(mockBrandRepository.findOneAndDelete).toHaveBeenCalledWith({
-        _id: mockBrand._id,
-      });
+      expect(result).toEqual(mockBrand);
     });
   });
 
