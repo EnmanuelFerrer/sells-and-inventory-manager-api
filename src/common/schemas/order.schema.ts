@@ -64,7 +64,7 @@ export class Order {
 
   @Prop({
     type: Number,
-    required: true,
+    required: false,
     min: 0,
     default: 0,
   })
