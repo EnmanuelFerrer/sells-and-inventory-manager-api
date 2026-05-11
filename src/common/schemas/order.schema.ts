@@ -5,7 +5,7 @@ import { User } from './users.schema';
 import { ExchangeRate } from './exchange-rate.schema';
 import { AbstractDocument } from './abstract.schema';
 
-export type OrderProcuctDocument = HydratedDocument<OrderProduct>;
+export type OrderProductDocument = HydratedDocument<OrderProduct>;
 
 @Schema({
   _id: false,
