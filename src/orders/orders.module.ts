@@ -6,6 +6,7 @@ import { Order, OrderSchema } from '../common/schemas/order.schema';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { UsersModule } from '../users/users.module';
 import { OrdersRepositoryService } from './repositories/orders-repository.service';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { OrdersRepositoryService } from './repositories/orders-repository.servic
 
     ExchangeRatesModule,
     UsersModule,
+    ProductsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersRepositoryService],
