@@ -1,9 +1,18 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { ParseMongoIdsPipe } from '../common/pipes/parse-mongo-ids.pipe';
 import { Order } from '../common/schemas/order.schema';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
+import { AddProductDto } from './dtos/add-product.dto';
 
 @Controller('users/:userId/orders')
 export class OrdersController {
@@ -42,5 +51,14 @@ export class OrdersController {
       {},
       {},
     );
+  }
+
+  @Patch(':orderId')
+  async addProduct(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('orderId', ParseMongoIdsPipe) orderId: string,
+    @Body() addProductDto: AddProductDto,
+  ): Promise<Order> {
+    return await this.ordersService.addProduct(userId, orderId, addProductDto);
   }
 }
