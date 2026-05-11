@@ -9,6 +9,7 @@ import { BrandsModule } from './brands/brands.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
     ProductsModule,
     SalesModule,
     ExchangeRatesModule,
+    OrdersModule,
 
     // Config imports
     ConfigModule.forRoot({
