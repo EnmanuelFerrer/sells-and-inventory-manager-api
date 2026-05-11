@@ -185,6 +185,49 @@ export class ProductsService {
     return product;
   }
 
+  async exists(queryFilter: QueryFilter<Product>): Promise<boolean> {
+    this.logger.debug('Checking if product exists.');
+    const product = await this.productRepository.exists(queryFilter);
+    if (!product) {
+      this.logger.debug(
+        `Product not found for filter: ${JSON.stringify(queryFilter)}.`,
+      );
+      throw new NotFoundException('Product not found.');
+    }
+    this.logger.debug('Product exist.');
+    return true;
+  }
+
+  async haveEnoughStock(productId: string, quantity: number): Promise<boolean> {
+    this.logger.debug(`Checking product availability.`);
+
+    if (quantity <= 0) {
+      this.logger.debug(`Quantity must be greater than 0.`);
+      throw new ConflictException(`Quantity must be greater than 0.`);
+    }
+    if (!Number.isInteger(quantity)) {
+      this.logger.debug(`Quantity must be an integer.`);
+      throw new ConflictException(`Quantity must be an integer.`);
+    }
+
+    const product = await this.productRepository.findOne({
+      _id: productId,
+      stock: { $gte: quantity },
+    });
+
+    if (!product) {
+      this.logger.debug(`Not enough stock for product ID: ${productId}.`);
+      throw new ConflictException(
+        `Not enough stock for product ID: ${productId}.`,
+      );
+    }
+
+    this.logger.debug(
+      `Product stock is sufficient for product ID: ${productId}.`,
+    );
+    return true;
+  }
+
   private validateCreationData(dto: CreateProductDto): void {
     this.logger.debug('Executing data pre-validations.');
 
@@ -212,7 +255,6 @@ export class ProductsService {
     }
 
     if (dto?.price !== undefined) {
-      this.logger.debug('messagemessagemessagemessagemessagemessage');
       if (dto.price < dto.cost) {
         throw new ConflictException(
           'Price must be greater than or equal to cost.',
