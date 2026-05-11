@@ -3,6 +3,7 @@ import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { Product } from './product.schema';
 import { User } from './users.schema';
 import { ExchangeRate } from './exchange-rate.schema';
+import { AbstractDocument } from './abstract.schema';
 
 export type OrderProcuctDocument = HydratedDocument<OrderProduct>;
 
@@ -40,7 +41,7 @@ export type OrderDocument = HydratedDocument<Order>;
   timestamps: true,
   versionKey: false,
 })
-export class Order {
+export class Order extends AbstractDocument {
   @Prop({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
