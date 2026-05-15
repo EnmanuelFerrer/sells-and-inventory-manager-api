@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -143,34 +144,56 @@ export class OrdersService {
   ): Promise<Order> {
     this.logger.debug('Adding product to order.');
 
-    /**
-     * TODO: Validate if the product the user is trying to add
-     * exists inside of the products array of the order
-     *
-     * TODO: If the product exists, then just increment then
-     * quantity of existent product
-     *
-     * TODO: Validate if there is available product in stock
-     * before adding it to the order
-     */
+    const { productId, quantity: quantityToAdd } = addProductDto;
+    const productQuery = { _id: productId, user: userId, isActive: true };
+    const orderQuery = { _id: orderId, user: userId };
 
-    const foundProduct = await this.productsService.findOne(
-      { _id: addProductDto.productId, user: userId },
-      { price: 1 },
-    );
+    await this.productsService.haveEnoughStock(productQuery, quantityToAdd);
+    const foundProduct = await this.productsService.findOne(productQuery);
+    const order = await this.findOne(orderQuery);
 
-    const update = await this.findOneAndUpdate(
-      { _id: orderId, user: userId },
-      {
-        $push: {
-          products: {
-            product: foundProduct._id,
-            unitPrice: foundProduct.price,
-            quantity: addProductDto.quantity,
+    if (order.products.length > 0) {
+      const productsInOrder = order.products;
+
+      const existentProductInOrder = productsInOrder.find(
+        (p) => p.product._id.toString() === productId,
+      )!;
+
+      if (existentProductInOrder !== undefined) {
+        const update = await this.findOneAndUpdate(
+          { ...orderQuery, 'products.product': productId },
+          {
+            $set: {
+              'products.$.quantity':
+                existentProductInOrder.quantity + quantityToAdd,
+              total: order.total + foundProduct.price * quantityToAdd,
+            },
           },
+        );
+
+        await this.productsService.findOneAndUpdate(productQuery, {
+          $inc: { stock: -quantityToAdd },
+        });
+
+        this.logger.debug('Product added to order.');
+        return update;
+      }
+    }
+
+    const update = await this.findOneAndUpdate(orderQuery, {
+      $push: {
+        products: {
+          product: foundProduct._id,
+          unitPrice: foundProduct.price,
+          quantity: quantityToAdd,
         },
       },
-    );
+      $set: { total: order.total + foundProduct.price * quantityToAdd },
+    });
+
+    await this.productsService.findOneAndUpdate(productQuery, {
+      $inc: { stock: -quantityToAdd },
+    });
 
     this.logger.debug('Product added to order.');
     return update;
