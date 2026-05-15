@@ -61,7 +61,7 @@ export class Order extends AbstractDocument {
     required: false,
     default: [],
   })
-  products: OrderProduct[] | [];
+  products: OrderProduct[];
 
   @Prop({
     type: Number,
