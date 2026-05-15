@@ -198,7 +198,10 @@ export class ProductsService {
     return true;
   }
 
-  async haveEnoughStock(productId: string, quantity: number): Promise<boolean> {
+  async haveEnoughStock(
+    queryFilter: QueryFilter<Product>,
+    quantity: number,
+  ): Promise<boolean> {
     this.logger.debug(`Checking product availability.`);
 
     if (quantity <= 0) {
@@ -211,20 +214,16 @@ export class ProductsService {
     }
 
     const product = await this.productRepository.findOne({
-      _id: productId,
+      ...queryFilter,
       stock: { $gte: quantity },
     });
 
     if (!product) {
-      this.logger.debug(`Not enough stock for product ID: ${productId}.`);
-      throw new ConflictException(
-        `Not enough stock for product ID: ${productId}.`,
-      );
+      this.logger.debug(`Not enough stock for product .`);
+      throw new ConflictException(`Not enough stock for product.`);
     }
 
-    this.logger.debug(
-      `Product stock is sufficient for product ID: ${productId}.`,
-    );
+    this.logger.debug(`Product stock is sufficient for product.`);
     return true;
   }
 
