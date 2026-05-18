@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -18,6 +19,7 @@ import {
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { ProductsService } from '../products/products.service';
+import { SalesRepositoryService } from '../sales/repositories/sales-repository.service';
 import { AddProductDto } from './dtos/add-product.dto';
 import { RemoveProductDto } from './dtos/remove-product.dto';
 
@@ -27,6 +29,7 @@ export class OrdersService {
 
   constructor(
     private readonly ordersRepositoryService: OrdersRepositoryService,
+    private readonly salesRepositoryService: SalesRepositoryService,
 
     private readonly exchangeRateService: ExchangeRatesService,
     private readonly usersService: UsersService,
@@ -144,6 +147,18 @@ export class OrdersService {
   ): Promise<Order> {
     this.logger.debug('Adding product to order.');
 
+    const orderExists = await this.salesRepositoryService.exists({
+      order: orderId,
+    });
+    if (orderExists) {
+      this.logger.debug(
+        'Order is already linked to a sale and cannot be modified.',
+      );
+      throw new ConflictException(
+        'Order is already linked to a sale and cannot be modified.',
+      );
+    }
+
     const { productId, quantity: quantityToAdd } = addProductDto;
     const productQuery = { _id: productId, user: userId, isActive: true };
     const orderQuery = { _id: orderId, user: userId };
@@ -205,6 +220,18 @@ export class OrdersService {
     removeProductDto: RemoveProductDto,
   ): Promise<Order> {
     this.logger.debug('Removing product from order.');
+
+    const orderExists = await this.salesRepositoryService.exists({
+      order: orderId,
+    });
+    if (orderExists) {
+      this.logger.debug(
+        'Order is already linked to a sale and cannot be modified.',
+      );
+      throw new ConflictException(
+        'Order is already linked to a sale and cannot be modified.',
+      );
+    }
 
     const { productId, quantity: quantityToRemove } = removeProductDto;
     const productQuery = { _id: productId, user: userId, isActive: true };

@@ -9,6 +9,7 @@ import { OrdersRepositoryService } from './repositories/orders-repository.servic
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { UsersService } from '../users/users.service';
 import { ProductsService } from '../products/products.service';
+import { SalesRepositoryService } from '../sales/repositories/sales-repository.service';
 import { Order } from '../common/schemas/order.schema';
 import { Product } from '../common/schemas/product.schema';
 import { ExchangeRate } from '../common/schemas/exchange-rate.schema';
@@ -41,6 +42,9 @@ describe('OrdersService', () => {
     haveEnoughStock: jest.Mock;
     findOne: jest.Mock;
     findOneAndUpdate: jest.Mock;
+  };
+  let mockSalesRepositoryService: {
+    exists: jest.Mock;
   };
 
   const mockUser: User = {
@@ -133,6 +137,10 @@ describe('OrdersService', () => {
       findOneAndUpdate: jest.fn().mockResolvedValue(mockProduct),
     };
 
+    mockSalesRepositoryService = {
+      exists: jest.fn().mockResolvedValue(false),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
@@ -151,6 +159,10 @@ describe('OrdersService', () => {
         {
           provide: ProductsService,
           useValue: mockProductsService,
+        },
+        {
+          provide: SalesRepositoryService,
+          useValue: mockSalesRepositoryService,
         },
       ],
     }).compile();
@@ -490,6 +502,23 @@ describe('OrdersService', () => {
         service.addProduct(userId, orderId, addProductDto),
       ).rejects.toThrow(InternalServerErrorException);
     });
+
+    it('should throw ConflictException when order is already linked to a sale', async () => {
+      const addProductDto: AddProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 2,
+      };
+
+      mockSalesRepositoryService.exists.mockResolvedValue(true);
+
+      await expect(
+        service.addProduct(userId, orderId, addProductDto),
+      ).rejects.toThrow(ConflictException);
+
+      expect(mockSalesRepositoryService.exists).toHaveBeenCalledWith({
+        order: orderId,
+      });
+    });
   });
 
   describe('removeProduct', () => {
@@ -604,6 +633,23 @@ describe('OrdersService', () => {
       await expect(
         service.removeProduct(userId, orderId, removeProductDto),
       ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('should throw ConflictException when order is already linked to a sale', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 1,
+      };
+
+      mockSalesRepositoryService.exists.mockResolvedValue(true);
+
+      await expect(
+        service.removeProduct(userId, orderId, removeProductDto),
+      ).rejects.toThrow(ConflictException);
+
+      expect(mockSalesRepositoryService.exists).toHaveBeenCalledWith({
+        order: orderId,
+      });
     });
   });
 });
