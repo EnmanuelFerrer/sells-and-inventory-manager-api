@@ -8,14 +8,10 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { Sale } from '../common/schemas/sale.schema';
 import { SalesRepositoryService } from './repositories/sales-repository.service';
 import { UsersService } from '../users/users.service';
-import { ProductsService } from '../products/products.service';
-import { ProjectionFields, QueryFilter, QueryOptions, Types } from 'mongoose';
-import { Product } from '../common/schemas/product.schema';
-import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
+import { ProjectionFields, QueryFilter, QueryOptions } from 'mongoose';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
-import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
-import { CurrenciesEnum } from '../common/enums/currencies.enum';
+import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
 export class SalesService {
@@ -25,31 +21,48 @@ export class SalesService {
     private readonly salesRepository: SalesRepositoryService,
 
     private readonly usersService: UsersService,
-    private readonly productsService: ProductsService,
-    private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   async create(userId: string, createSaleDto: CreateSaleDto): Promise<Sale> {
     this.logger.debug('Creating sale.');
-    await this.usersService.exists({ _id: userId });
-    await this.validateCreationData(userId, createSaleDto);
-    const data: Partial<Sale> = await this.generateCreationData(
-      userId,
-      createSaleDto,
-    );
-    const createdSale = await this.salesRepository.create(data);
-    this.logger.debug('Sale created.');
+    const user = await this.usersService.findOne({ _id: userId });
+    const order = await this.ordersService.findOne({
+      _id: createSaleDto.orderId,
+      user: userId,
+    });
 
-    return (await this.salesRepository.findOne(
-      { _id: createdSale._id },
-      {},
-      {
-        populate: {
-          path: 'saleProducts.product',
-          select: ['name'],
-        },
-      },
-    )) as Sale;
+    if (order.products.length === 0) {
+      this.logger.debug(
+        'Creating sales whit empty orders is not allowed. Please add products to the order.',
+      );
+      throw new ConflictException(
+        'Creating sales whit empty orders is not allowed. Please add products to the order.',
+      );
+    }
+
+    const saleExists = await this.exists({
+      user: userId,
+      order: createSaleDto.orderId,
+    });
+
+    if (saleExists) {
+      this.logger.debug(
+        'The order you try to attach to this sale is currently attached in another sale. Please attach another order.',
+      );
+      throw new ConflictException(
+        'The order you try to attach to this sale is currently attached in another sale. Please attach another order.',
+      );
+    }
+
+    const createdSale = await this.salesRepository.create({
+      user,
+      order,
+      status: createSaleDto.status,
+    });
+
+    this.logger.debug('Sale created.');
+    return await this.findOne({ _id: createdSale._id });
   }
 
   async find(
@@ -63,13 +76,7 @@ export class SalesService {
     const sales = await this.salesRepository.find(
       queryFilter,
       projection,
-      {
-        ...options,
-        populate: {
-          path: 'saleProducts.product',
-          select: ['name', 'price'],
-        },
-      },
+      options,
       paginationDto,
     );
 
@@ -89,13 +96,11 @@ export class SalesService {
   ): Promise<Sale> {
     this.logger.debug('Finding sale.');
 
-    const sale = await this.salesRepository.findOne(queryFilter, projection, {
-      ...options,
-      populate: {
-        path: 'saleProducts.product',
-        select: ['name', 'price'],
-      },
-    });
+    const sale = await this.salesRepository.findOne(
+      queryFilter,
+      projection,
+      options,
+    );
 
     if (!sale) {
       this.logger.debug(
@@ -108,86 +113,16 @@ export class SalesService {
     return sale;
   }
 
-  private async validateCreationData(
-    userId: string,
-    dto: CreateSaleDto,
-  ): Promise<void> {
-    const productsIds = dto.saleProducts.map(
-      (saleProduct) => saleProduct.productId,
-    );
-    const query: QueryFilter<Product> = {
-      user: userId,
-      _id: { $in: productsIds },
-    };
-    const totalProducts = await this.productsService.count(query);
-    const products = await this.productsService.find(
-      query,
-      {},
-      {},
-      { limit: totalProducts },
-    );
-
-    const errorMessages: string[] = [];
-
-    for (const saleProduct of dto.saleProducts) {
-      const productInDB = products.items.find((p) =>
-        p._id.equals(saleProduct.productId),
+  async exists(queryFilter: QueryFilter<Sale>): Promise<boolean> {
+    this.logger.debug('Checking if sale exists.');
+    const sale = await this.salesRepository.exists(queryFilter);
+    if (!sale) {
+      this.logger.debug(
+        `Sale not found for filter: ${JSON.stringify(queryFilter)}.`,
       );
-
-      if (!productInDB) {
-        errorMessages.push(
-          `Product with ID ${saleProduct.productId.toString()} not found.`,
-        );
-      }
-
-      if (productInDB && productInDB.stock < saleProduct.quantity) {
-        errorMessages.push(
-          `Product with ID ${saleProduct.productId.toString()} does not have enough stock.`,
-        );
-      }
+      return false;
     }
-
-    if (errorMessages.length > 0) {
-      throw new ConflictException(errorMessages);
-    }
-  }
-
-  private async generateCreationData(
-    userId: string,
-    dto: CreateSaleDto,
-  ): Promise<Partial<Sale>> {
-    const exchangeRate = await this.exchangeRatesService.findLast(
-      CurrenciesEnum.USD,
-    );
-    const data: Partial<Sale> = {
-      user: new Types.ObjectId(userId),
-      exchangeRate,
-      saleProducts: [],
-      total: 0,
-    };
-
-    for (const saleProduct of dto.saleProducts) {
-      const product = await this.productsService.findOne({
-        _id: saleProduct.productId,
-      });
-
-      data.saleProducts!.push({
-        product: product._id,
-        quantity: saleProduct.quantity,
-        unitPrice: product.price,
-      });
-      data.total! += Number((product.price * saleProduct.quantity).toFixed(2));
-
-      await this.productsService.stockOperation(
-        userId,
-        product._id.toString(),
-        {
-          operation: ProductStockOperationsEnum.DECREMENT,
-          quantity: saleProduct.quantity,
-        },
-      );
-    }
-
-    return data;
+    this.logger.debug('Sale exist.');
+    return true;
   }
 }
