@@ -19,6 +19,7 @@ import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { ProductsService } from '../products/products.service';
 import { AddProductDto } from './dtos/add-product.dto';
+import { RemoveProductDto } from './dtos/remove-product.dto';
 
 @Injectable()
 export class OrdersService {
@@ -195,6 +196,69 @@ export class OrdersService {
     });
 
     this.logger.debug('Product added to order.');
+    return update;
+  }
+
+  async removeProduct(
+    userId: string,
+    orderId: string,
+    removeProductDto: RemoveProductDto,
+  ): Promise<Order> {
+    this.logger.debug('Removing product from order.');
+
+    const { productId, quantity: quantityToRemove } = removeProductDto;
+    const productQuery = { _id: productId, user: userId, isActive: true };
+    const orderQuery = { _id: orderId, user: userId };
+
+    const order = await this.findOne(orderQuery);
+
+    const productInOrder = order.products.find(
+      (p) => p.product._id.toString() === productId,
+    );
+
+    if (!productInOrder) {
+      this.logger.debug(`Product not found in order: ${productId}`);
+      throw new NotFoundException('Product not found in order.');
+    }
+
+    const currentQuantity = productInOrder.quantity;
+
+    if (quantityToRemove >= currentQuantity) {
+      const quantityToRestore = currentQuantity;
+
+      const update = await this.findOneAndUpdate(orderQuery, {
+        $pull: { products: { product: productId } },
+        $set: {
+          total: order.total - productInOrder.unitPrice * quantityToRestore,
+        },
+      });
+
+      await this.productsService.findOneAndUpdate(productQuery, {
+        $inc: { stock: quantityToRestore },
+      });
+
+      this.logger.debug('Product removed from order.');
+      return update;
+    }
+
+    const newQuantity = currentQuantity - quantityToRemove;
+    const totalReduction = productInOrder.unitPrice * quantityToRemove;
+
+    const update = await this.findOneAndUpdate(
+      { ...orderQuery, 'products.product': productId },
+      {
+        $set: {
+          'products.$.quantity': newQuantity,
+          total: order.total - totalReduction,
+        },
+      },
+    );
+
+    await this.productsService.findOneAndUpdate(productQuery, {
+      $inc: { stock: quantityToRemove },
+    });
+
+    this.logger.debug('Product quantity decremented in order.');
     return update;
   }
 }

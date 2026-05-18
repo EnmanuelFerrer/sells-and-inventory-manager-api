@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsMongoId, IsPositive, IsString, Min } from 'class-validator';
+import { IsInt, IsMongoId, IsString, Min, IsPositive } from 'class-validator';
 
-export class AddProductDto {
+export class RemoveProductDto {
   @IsString()
   @IsMongoId()
   productId: string;

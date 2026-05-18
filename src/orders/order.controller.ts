@@ -13,6 +13,7 @@ import { Order } from '../common/schemas/order.schema';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { AddProductDto } from './dtos/add-product.dto';
+import { RemoveProductDto } from './dtos/remove-product.dto';
 
 @Controller('users/:userId/orders')
 export class OrdersController {
@@ -53,12 +54,25 @@ export class OrdersController {
     );
   }
 
-  @Patch(':orderId')
+  @Patch(':orderId/add-product')
   async addProduct(
     @Param('userId', ParseMongoIdsPipe) userId: string,
     @Param('orderId', ParseMongoIdsPipe) orderId: string,
     @Body() addProductDto: AddProductDto,
   ): Promise<Order> {
     return await this.ordersService.addProduct(userId, orderId, addProductDto);
+  }
+
+  @Patch(':orderId/remove-product')
+  async removeProduct(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('orderId', ParseMongoIdsPipe) orderId: string,
+    @Body() removeProductDto: RemoveProductDto,
+  ): Promise<Order> {
+    return await this.ordersService.removeProduct(
+      userId,
+      orderId,
+      removeProductDto,
+    );
   }
 }

@@ -17,6 +17,7 @@ import { CurrenciesEnum } from '../common/enums/currencies.enum';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { AddProductDto } from './dtos/add-product.dto';
+import { RemoveProductDto } from './dtos/remove-product.dto';
 import { Types } from 'mongoose';
 import { RolesEnum } from '../common/enums/roles.enum';
 
@@ -487,6 +488,121 @@ describe('OrdersService', () => {
 
       await expect(
         service.addProduct(userId, orderId, addProductDto),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
+  describe('removeProduct', () => {
+    const userId = 'user-id-123';
+    const orderId = 'order-id-123';
+
+    it('should remove product completely when quantity equals current quantity', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 2,
+      };
+
+      mockOrdersRepository.findOne
+        .mockResolvedValueOnce(mockOrderWithProduct)
+        .mockResolvedValueOnce(mockOrderWithProduct);
+
+      mockOrdersRepository.findOneAndUpdate.mockResolvedValueOnce({
+        ...mockOrderWithProduct,
+        products: [],
+        total: 0,
+      });
+
+      const result = await service.removeProduct(
+        userId,
+        orderId,
+        removeProductDto,
+      );
+
+      expect(mockProductsService.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId, isActive: true },
+        { $inc: { stock: 2 } },
+      );
+
+      expect(result.products).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+
+    it('should decrement quantity when quantity is less than current', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 1,
+      };
+
+      mockOrdersRepository.findOne
+        .mockResolvedValueOnce(mockOrderWithProduct)
+        .mockResolvedValueOnce(mockOrderWithProduct);
+
+      mockOrdersRepository.findOneAndUpdate.mockResolvedValueOnce({
+        ...mockOrderWithProduct,
+        products: [
+          {
+            product: mockProduct._id,
+            unitPrice: 120,
+            quantity: 1,
+          },
+        ],
+        total: 120,
+      });
+
+      const result = await service.removeProduct(
+        userId,
+        orderId,
+        removeProductDto,
+      );
+
+      expect(mockProductsService.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId, isActive: true },
+        { $inc: { stock: 1 } },
+      );
+
+      expect(result.products[0].quantity).toBe(1);
+      expect(result.total).toBe(120);
+    });
+
+    it('should throw NotFoundException when order does not exist', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 1,
+      };
+
+      mockOrdersRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.removeProduct(userId, 'nonexistent-order', removeProductDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when product is not in order', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: new Types.ObjectId().toString(),
+        quantity: 1,
+      };
+
+      mockOrdersRepository.findOne.mockResolvedValueOnce(mockOrder);
+
+      await expect(
+        service.removeProduct(userId, orderId, removeProductDto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw InternalServerErrorException when findOneAndUpdate returns null', async () => {
+      const removeProductDto: RemoveProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 1,
+      };
+
+      mockOrdersRepository.findOne
+        .mockResolvedValueOnce(mockOrderWithProduct)
+        .mockResolvedValueOnce(mockOrderWithProduct);
+      mockOrdersRepository.findOneAndUpdate.mockResolvedValueOnce(null);
+
+      await expect(
+        service.removeProduct(userId, orderId, removeProductDto),
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
