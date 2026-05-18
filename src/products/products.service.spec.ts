@@ -16,6 +16,7 @@ import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { CurrenciesEnum } from '../common/enums/currencies.enum';
 import { Types } from 'mongoose';
+import { RolesEnum } from '../common/enums/roles.enum';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -41,17 +42,26 @@ describe('ProductsService', () => {
     _id: new Types.ObjectId(),
     currency: CurrenciesEnum.USD,
     amount: 499.8608,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockUser = {
     _id: new Types.ObjectId(),
     username: 'testuser',
+    password: 'hashedpassword',
+    rol: RolesEnum.USER,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockBrand = {
     _id: new Types.ObjectId(),
     name: 'Test Brand',
-    users: ['user-id-123'],
+    user: mockUser._id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockProduct: Product = {
@@ -64,6 +74,8 @@ describe('ProductsService', () => {
     isActive: true,
     user: mockUser._id,
     brand: mockBrand._id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockPaginatedResult: IPagination<Product> = {

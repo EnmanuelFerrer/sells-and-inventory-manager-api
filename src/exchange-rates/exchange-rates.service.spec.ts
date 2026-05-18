@@ -29,6 +29,8 @@ describe('ExchangeRatesService', () => {
     _id: new Types.ObjectId(),
     currency: CurrenciesEnum.USD,
     amount: 499.8608,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {

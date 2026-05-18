@@ -48,12 +48,16 @@ describe('OrdersService', () => {
     password: 'hashedpassword',
     rol: RolesEnum.USER,
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockExchangeRate: ExchangeRate = {
     _id: new Types.ObjectId(),
     currency: CurrenciesEnum.USD,
     amount: 499.8608,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockProduct: Product = {
@@ -66,6 +70,8 @@ describe('OrdersService', () => {
     isActive: true,
     user: mockUser._id,
     brand: new Types.ObjectId(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockOrder: Order = {
@@ -74,6 +80,8 @@ describe('OrdersService', () => {
     exchangeRate: mockExchangeRate._id,
     products: [],
     total: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockOrderWithProduct: Order = {
@@ -411,6 +419,28 @@ describe('OrdersService', () => {
         { _id: mockProduct._id.toString(), user: userId, isActive: true },
         3,
       );
+
+      // Verify repository call with correct filter (products.product field)
+      expect(mockOrdersRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          _id: orderId,
+          user: userId,
+          'products.product': mockProduct._id.toString(),
+        },
+        {
+          $set: {
+            'products.$.quantity': 5, // 2 (existing) + 3 (new)
+            total: 600, // 240 (existing) + 120 * 3 = 600
+          },
+        },
+      );
+
+      // Verify stock is decremented
+      expect(mockProductsService.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId, isActive: true },
+        { $inc: { stock: -3 } },
+      );
+
       expect(result.total).toBe(600);
       expect(result.products[0].quantity).toBe(5);
     });
@@ -441,6 +471,23 @@ describe('OrdersService', () => {
       await expect(
         service.addProduct(userId, 'nonexistent-order', addProductDto),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw InternalServerErrorException when findOneAndUpdate returns null', async () => {
+      const addProductDto: AddProductDto = {
+        productId: mockProduct._id.toString(),
+        quantity: 2,
+      };
+
+      // First call to findOne (to get the order)
+      mockOrdersRepository.findOne.mockResolvedValueOnce(mockOrder);
+
+      // findOneAndUpdate returns null (update failed)
+      mockOrdersRepository.findOneAndUpdate.mockResolvedValueOnce(null);
+
+      await expect(
+        service.addProduct(userId, orderId, addProductDto),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

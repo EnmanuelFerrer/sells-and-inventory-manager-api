@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractDocument } from './abstract.schema';
 import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { User } from './users.schema';
-import { Product } from './product.schema';
 import { Order } from './order.schema';
 import { SaleStatusesEnum } from '../enums/sale-statuses.enum';
 
