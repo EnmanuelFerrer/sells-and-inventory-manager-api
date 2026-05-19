@@ -72,4 +72,20 @@ export class ProductsController {
       stockOperationDto,
     );
   }
+
+  @Patch(':productId/activate')
+  async activate(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('productId', ParseMongoIdsPipe) productId: string,
+  ): Promise<Product> {
+    return await this.productsService.activate(userId, productId);
+  }
+
+  @Patch(':productId/deactivate')
+  async deactivate(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('productId', ParseMongoIdsPipe) productId: string,
+  ): Promise<Product> {
+    return await this.productsService.deactivate(userId, productId);
+  }
 }

@@ -185,6 +185,102 @@ export class ProductsService {
     return product;
   }
 
+  async exists(queryFilter: QueryFilter<Product>): Promise<boolean> {
+    this.logger.debug('Checking if product exists.');
+    const product = await this.productRepository.exists(queryFilter);
+    if (!product) {
+      this.logger.debug(
+        `Product not found for filter: ${JSON.stringify(queryFilter)}.`,
+      );
+      throw new NotFoundException('Product not found.');
+    }
+    this.logger.debug('Product exist.');
+    return true;
+  }
+
+  async haveEnoughStock(
+    queryFilter: QueryFilter<Product>,
+    quantity: number,
+  ): Promise<boolean> {
+    this.logger.debug(`Checking product availability.`);
+
+    if (quantity <= 0) {
+      this.logger.debug(`Quantity must be greater than 0.`);
+      throw new ConflictException(`Quantity must be greater than 0.`);
+    }
+    if (!Number.isInteger(quantity)) {
+      this.logger.debug(`Quantity must be an integer.`);
+      throw new ConflictException(`Quantity must be an integer.`);
+    }
+
+    const product = await this.productRepository.findOne({
+      ...queryFilter,
+      stock: { $gte: quantity },
+    });
+
+    if (!product) {
+      this.logger.debug(`Not enough stock for product .`);
+      throw new ConflictException(`Not enough stock for product.`);
+    }
+
+    this.logger.debug(`Product stock is sufficient for product.`);
+    return true;
+  }
+
+  async activate(userId: string, productId: string): Promise<Product> {
+    this.logger.debug(`Activating product: ${productId}.`);
+
+    const existingProduct = await this.findOne({
+      _id: productId,
+      user: userId,
+    });
+
+    if (!existingProduct) {
+      this.logger.debug(`Product not found for ID: ${productId}.`);
+      throw new NotFoundException(`Product not found.`);
+    }
+
+    if (existingProduct.isActive) {
+      this.logger.debug(`Product is already active: ${productId}.`);
+      throw new ConflictException(`Product is already active.`);
+    }
+
+    const product = await this.findOneAndUpdate(
+      { _id: productId, user: userId },
+      { $set: { isActive: true } },
+    );
+
+    this.logger.debug(`Product activated: ${productId}.`);
+    return product;
+  }
+
+  async deactivate(userId: string, productId: string): Promise<Product> {
+    this.logger.debug(`Deactivating product: ${productId}.`);
+
+    const existingProduct = await this.findOne({
+      _id: productId,
+      user: userId,
+    });
+
+    if (!existingProduct) {
+      this.logger.debug(`Product not found for ID: ${productId}.`);
+      throw new NotFoundException(`Product not found.`);
+    }
+
+    if (!existingProduct.isActive) {
+      this.logger.debug(`Product is already inactive: ${productId}.`);
+      throw new ConflictException(`Product is already inactive.`);
+    }
+
+    const product = await this.findOneAndUpdate(
+      { _id: productId, user: userId },
+      { $set: { isActive: false } },
+    );
+
+    this.logger.debug(`Product deactivated: ${productId}.`);
+    return product;
+  }
+
   private validateCreationData(dto: CreateProductDto): void {
     this.logger.debug('Executing data pre-validations.');
 
@@ -212,7 +308,6 @@ export class ProductsService {
     }
 
     if (dto?.price !== undefined) {
-      this.logger.debug('messagemessagemessagemessagemessagemessage');
       if (dto.price < dto.cost) {
         throw new ConflictException(
           'Price must be greater than or equal to cost.',

@@ -1,30 +1,16 @@
-import { Type } from 'class-transformer';
-import {
-  ArrayMinSize,
-  IsArray,
-  IsDefined,
-  IsMongoId,
-  IsNumber,
-  IsPositive,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
-
-class SaleProductDto {
-  @IsString()
-  @IsMongoId()
-  productId: string;
-
-  @IsNumber()
-  @IsPositive()
-  quantity: number;
-}
+import { IsEnum, IsMongoId, IsString } from 'class-validator';
+import { SaleStatusesEnum } from '../../common/enums/sale-statuses.enum';
+import { Transform } from 'class-transformer';
 
 export class CreateSaleDto {
-  @IsDefined()
-  @IsArray()
-  @ArrayMinSize(1)
-  @Type(() => SaleProductDto)
-  @ValidateNested({ each: true })
-  saleProducts: SaleProductDto[];
+  @IsMongoId()
+  orderId: string;
+
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return false;
+    return value.toLocaleLowerCase();
+  })
+  @IsString()
+  @IsEnum(SaleStatusesEnum)
+  status: SaleStatusesEnum;
 }

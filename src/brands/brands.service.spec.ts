@@ -9,6 +9,7 @@ import { IPagination } from '../common/interfaces/pagination.interface';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { User } from '../common/schemas/users.schema';
+import { RolesEnum } from '../common/enums/roles.enum';
 
 describe('BrandsService', () => {
   let service: BrandsService;
@@ -27,12 +28,19 @@ describe('BrandsService', () => {
   const mockUser = {
     _id: new Types.ObjectId(),
     username: 'testuser',
+    password: 'hashedpassword',
+    rol: RolesEnum.USER,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   } as User;
 
   const mockBrand: Brand = {
     _id: new Types.ObjectId(),
     name: 'testbrand',
-    user: mockUser,
+    user: mockUser._id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockPaginatedResult: IPagination<Brand> = {

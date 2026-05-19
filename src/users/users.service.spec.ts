@@ -24,6 +24,8 @@ describe('UsersService', () => {
     password: 'hashedpassword',
     rol: RolesEnum.USER,
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const mockPaginatedResult: IPagination<User> = {
