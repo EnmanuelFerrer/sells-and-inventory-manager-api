@@ -48,11 +48,12 @@ $ npm install
 
 Define the following environment variables in a `.env` file:
 
-| Variable    | Description               | Default                   |
-| ----------- | ------------------------- | ------------------------- |
-| PORT        | Server port number        | 3000                      |
-| API_PREFIX  | API URL prefix            | api                       |
-| MONGODB_URI | MongoDB connection string | mongodb://localhost:27017 |
+| Variable                      | Description                        | Default                   |
+| ----------------------------- | ---------------------------------- | ------------------------- |
+| PORT                          | Server port number                 | 3000                      |
+| API_PREFIX                    | API URL prefix                     | api                       |
+| MONGODB_URI                   | MongoDB connection string          | mongodb://localhost:27017 |
+| CENTRAL_BANK_OF_VENEZUELA_URL | BCV website URL for exchange rates | (required)                |
 
 Example `.env` file:
 
@@ -60,6 +61,7 @@ Example `.env` file:
 PORT=3000
 API_PREFIX=api
 MONGODB_URI=mongodb://localhost:27017
+CENTRAL_BANK_OF_VENEZUELA_URL=https://www.bcv.org.ve
 ```
 
 ## Usage
@@ -99,6 +101,7 @@ $ git clone <repository-url>
 PORT=3000
 API_PREFIX=api
 MONGODB_URI=mongodb://mongo:27017
+CENTRAL_BANK_OF_VENEZUELA_URL=https://www.bcv.org.ve
 ```
 
 3. Start the API and MongoDB:
@@ -126,11 +129,12 @@ The API will be available at `http://localhost:3000/api` and MongoDB at `localho
 
 When using Docker Compose, the following environment variables are used:
 
-| Variable    | Default               | Description                               |
-| ----------- | --------------------- | ----------------------------------------- |
-| PORT        | 3000                  | Server port                               |
-| API_PREFIX  | api                   | API URL prefix                            |
-| MONGODB_URI | mongodb://mongo:27017 | MongoDB connection (use `mongo` hostname) |
+| Variable                      | Default               | Description                               |
+| ----------------------------- | --------------------- | ----------------------------------------- |
+| PORT                          | 3000                  | Server port                               |
+| API_PREFIX                    | api                   | API URL prefix                            |
+| MONGODB_URI                   | mongodb://mongo:27017 | MongoDB connection (use `mongo` hostname) |
+| CENTRAL_BANK_OF_VENEZUELA_URL | (required)            | BCV website URL for exchange rates        |
 
 ### Building without Compose (Optional)
 
