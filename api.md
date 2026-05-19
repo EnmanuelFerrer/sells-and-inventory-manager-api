@@ -181,26 +181,197 @@ Returns a single product by ID.
 
 ---
 
-### Update Product Stock
+### Increment Product Stock
 
-Performs a stock operation (increment or decrement) on a product.
+Increases the stock quantity of a product.
 
-- **Endpoint:** `PATCH /users/:userId/brands/:brandId/products/:productId`
-- **URL:** `/users/:userId/brands/:brandId/products/:productId`
+- **Endpoint:** `PATCH /users/:userId/brands/:brandId/products/:productId/increment-stock`
+- **URL:** `/users/:userId/brands/:brandId/products/:productId/increment-stock`
 - **Path Parameters:**
   - `userId` - User's MongoDB ObjectId
+  - `brandId` - Brand's MongoDB ObjectId
   - `productId` - Product's MongoDB ObjectId
 
 - **Body:**
 
 ```json
 {
-  "operation": "increment | decrement",
   "quantity": "number (positive integer)"
 }
 ```
 
 - **Response:** Returns the updated product object.
+
+**Notes:**
+- Product must exist and be active (`isActive: true`).
+- Throws 404 if product not found or inactive.
+
+---
+
+### Decrement Product Stock
+
+Decreases the stock quantity of a product.
+
+- **Endpoint:** `PATCH /users/:userId/brands/:brandId/products/:productId/decrement-stock`
+- **URL:** `/users/:userId/brands/:brandId/products/:productId/decrement-stock`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `brandId` - Brand's MongoDB ObjectId
+  - `productId` - Product's MongoDB ObjectId
+
+- **Body:**
+
+```json
+{
+  "quantity": "number (positive integer)"
+}
+```
+
+- **Response:** Returns the updated product object.
+
+**Notes:**
+- Product must exist and be active (`isActive: true`).
+- Throws 404 if product not found or inactive.
+
+---
+
+### Activate Product
+
+Activates a product so it can be used in sales and stock operations.
+
+- **Endpoint:** `PATCH /users/:userId/brands/:brandId/products/:productId/activate`
+- **URL:** `/users/:userId/brands/:brandId/products/:productId/activate`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `brandId` - Brand's MongoDB ObjectId
+  - `productId` - Product's MongoDB ObjectId
+
+- **Response:** Returns the updated product object.
+
+**Notes:**
+- Throws 409 Conflict if product is already active.
+
+---
+
+### Deactivate Product
+
+Deactivates a product, preventing it from being used in sales and stock operations.
+
+- **Endpoint:** `PATCH /users/:userId/brands/:brandId/products/:productId/deactivate`
+- **URL:** `/users/:userId/brands/:brandId/products/:productId/deactivate`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `brandId` - Brand's MongoDB ObjectId
+  - `productId` - Product's MongoDB ObjectId
+
+- **Response:** Returns the updated product object.
+
+**Notes:**
+- Throws 409 Conflict if product is already inactive.
+
+---
+
+## Orders
+
+### Create Order
+
+Creates a new empty order for a user.
+
+- **Endpoint:** `POST /users/:userId/orders`
+- **URL:** `/users/:userId/orders`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+
+- **Body:** Empty (no body required)
+
+- **Response:** Returns the created order object.
+
+---
+
+### Get All Orders
+
+Returns a paginated list of orders for a specific user.
+
+- **Endpoint:** `GET /users/:userId/orders`
+- **URL:** `/users/:userId/orders`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+
+- **Query Parameters:**
+
+| Parameter | Type   | Default | Constraints    |
+|-----------|--------|---------|----------------|
+| limit     | number | 25      | 1-25           |
+| skip      | number | 0       | >= 0           |
+
+- **Response:** Returns paginated orders `{ items, totalItems, totalPages, skip, limit }`.
+
+---
+
+### Get Order by ID
+
+Returns a single order by ID for a specific user.
+
+- **Endpoint:** `GET /users/:userId/orders/:orderId`
+- **URL:** `/users/:userId/orders/:orderId`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `orderId` - Order's MongoDB ObjectId
+
+- **Response:** Returns the order object.
+
+---
+
+### Add Product to Order
+
+Adds a product to an existing order.
+
+- **Endpoint:** `PATCH /users/:userId/orders/:orderId/add-product`
+- **URL:** `/users/:userId/orders/:orderId/add-product`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `orderId` - Order's MongoDB ObjectId
+
+- **Body:**
+
+```json
+{
+  "productId": "MongoDB ObjectId",
+  "quantity": "number (positive integer)"
+}
+```
+
+- **Response:** Returns the updated order object.
+
+**Notes:**
+- Product must exist and be active.
+- Product stock is automatically decremented.
+
+---
+
+### Remove Product from Order
+
+Removes a product from an existing order.
+
+- **Endpoint:** `PATCH /users/:userId/orders/:orderId/remove-product`
+- **URL:** `/users/:userId/orders/:orderId/remove-product`
+- **Path Parameters:**
+  - `userId` - User's MongoDB ObjectId
+  - `orderId` - Order's MongoDB ObjectId
+
+- **Body:**
+
+```json
+{
+  "productId": "MongoDB ObjectId",
+  "quantity": "number (positive integer)"
+}
+```
+
+- **Response:** Returns the updated order object.
+
+**Notes:**
+- Product stock is automatically restored (incremented).
 
 ---
 
@@ -219,19 +390,15 @@ Creates a new sale for a user.
 
 ```json
 {
-  "saleProducts": [
-    {
-      "productId": "MongoDB ObjectId",
-      "quantity": "number (positive)"
-    }
-  ]
+  "orderId": "MongoDB ObjectId (required)",
+  "status": "string (optional) - e.g., 'completed', 'pending'"
 }
 ```
 
 **Notes:**
-- At least one product is required.
-- Products must exist and belong to the user.
-- Stock is automatically decremented for each product.
+- Order must contain at least one product.
+- Order cannot be already associated with another sale.
+- Sale is created from the order's products.
 
 - **Response:** Returns the created sale object with total calculated.
 

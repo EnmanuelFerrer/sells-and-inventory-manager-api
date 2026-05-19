@@ -9,9 +9,10 @@ This is an API built for a selling and inventory management system that allows y
 ## Features
 
 - **Users**: Create and list users in the system.
-- **Brands**: Create brands associated with a user. Brands are shared across all users (any user can see and use any brand).
-- **Products**: Create products linked to any brand, list them, get one, or update stock.
-- **Sales**: Register sales with multiple products. Stock is automatically decremented when a sale is created.
+- **Brands**: Create brands associated with a user. Each user manages their own brand collection.
+- **Products**: Create products linked to a brand, list them, get one, update stock (increment/decrement), and activate/deactivate.
+- **Orders**: Create orders, add/remove products, manage pending orders.
+- **Sales**: Create sales from orders. Stock is automatically decremented when a sale is completed.
 
 ## Technologies
 
