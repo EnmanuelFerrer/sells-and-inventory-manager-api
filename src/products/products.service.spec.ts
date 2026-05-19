@@ -348,6 +348,92 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('incrementStock', () => {
+    const userId = 'user-id-123';
+
+    it('should increment stock of an active product', async () => {
+      const updatedProduct = {
+        ...mockProduct,
+        isActive: true,
+        stock: 15,
+      };
+
+      mockProductRepository.exists.mockResolvedValue(true);
+      mockProductRepository.findOneAndUpdate.mockResolvedValue(updatedProduct);
+
+      const result = await service.incrementStock(
+        userId,
+        mockProduct._id.toString(),
+        { quantity: 5 },
+      );
+
+      expect(mockProductRepository.exists).toHaveBeenCalledWith({
+        _id: mockProduct._id.toString(),
+        user: userId,
+        isActive: true,
+      });
+      expect(mockProductRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId, isActive: true },
+        { $inc: { stock: 5 } },
+        {},
+      );
+      expect(result.stock).toBe(15);
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      mockProductRepository.exists.mockResolvedValue(false);
+
+      await expect(
+        service.incrementStock(userId, mockProduct._id.toString(), {
+          quantity: 5,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('decrementStock', () => {
+    const userId = 'user-id-123';
+
+    it('should decrement stock of an active product', async () => {
+      const updatedProduct = {
+        ...mockProduct,
+        isActive: true,
+        stock: 5,
+      };
+
+      mockProductRepository.exists.mockResolvedValue(true);
+      mockProductRepository.findOneAndUpdate.mockResolvedValue(updatedProduct);
+
+      const result = await service.decrementStock(
+        userId,
+        mockProduct._id.toString(),
+        { quantity: 5 },
+      );
+
+      expect(mockProductRepository.exists).toHaveBeenCalledWith({
+        _id: mockProduct._id.toString(),
+        user: userId,
+        isActive: true,
+      });
+      expect(mockProductRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId, isActive: true },
+        { $inc: { stock: -5 } },
+        {},
+      );
+      expect(result.stock).toBe(5);
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      mockProductRepository.exists.mockResolvedValue(false);
+
+      await expect(
+        service.decrementStock(userId, mockProduct._id.toString(), {
+          quantity: 5,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('activate', () => {
     const userId = 'user-id-123';
 
