@@ -13,6 +13,7 @@ This is an API built for a selling and inventory management system that allows y
 - **Products**: Create products linked to a brand, list them, get one, update stock (increment/decrement), and activate/deactivate.
 - **Orders**: Create orders, add/remove products, manage pending orders.
 - **Sales**: Create sales from orders. Stock is automatically decremented when a sale is completed.
+- **Exchange Rates**: Fetch and update USD exchange rate from BCV (Central Bank of Venezuela). Runs automatically daily at 10 AM.
 
 ## Technologies
 

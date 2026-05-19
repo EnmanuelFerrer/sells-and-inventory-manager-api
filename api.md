@@ -438,6 +438,25 @@ Returns a single sale by ID for a specific user.
 
 ---
 
+## Exchange Rates
+
+### Update Exchange Rate
+
+Fetches the current USD exchange rate from the Central Bank of Venezuela and saves it.
+
+- **Endpoint:** `POST /exchange-rates/update`
+- **URL:** `/exchange-rates/update`
+- **Body:** None (no body required)
+
+- **Response:** Returns the latest exchange rate object.
+
+**Notes:**
+- Automatically scrapes the exchange rate from BCV website.
+- If the rate already exists for today, it does not create a duplicate.
+- Returns the most recent rate (new or existing).
+
+---
+
 ## Error Responses
 
 All endpoints may return the following error responses:

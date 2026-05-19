@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ExchangeRatesService } from './exchange-rates.service';
+import { ExchangeRatesController } from './exchange-rates.controller';
 import { PuppeteerModule } from '../puppeteer/puppeteer.module';
 import { ExchangeRatesRepositoryService } from './repositories/exchange-rates-repository.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -16,6 +17,7 @@ import {
 
     PuppeteerModule,
   ],
+  controllers: [ExchangeRatesController],
   providers: [ExchangeRatesService, ExchangeRatesRepositoryService],
   exports: [ExchangeRatesService],
 })
