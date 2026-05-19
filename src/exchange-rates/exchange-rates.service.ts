@@ -41,8 +41,8 @@ export class ExchangeRatesService implements OnModuleInit {
     const url = this.configService.getOrThrow<string>(
       'CENTRAL_BANK_OF_VENEZUELA_URL',
     );
-    const exchangeRate: number =
-      await this.puppeteerService.getDataFrom<number>(
+    const exchangeRate: number | undefined =
+      await this.puppeteerService.getDataFrom<number | undefined>(
         url,
         () => {
           const HTMLCollection = document
@@ -51,10 +51,20 @@ export class ExchangeRatesService implements OnModuleInit {
           const HTMLCollectionText = HTMLCollection?.textContent?.trim();
           const exchangeRateText = HTMLCollectionText;
           const exchangeRate = Number(exchangeRateText?.replace(',', '.'));
+          if (Number.isNaN(exchangeRate)) {
+            return undefined;
+          }
           return exchangeRate;
         },
         false,
       );
+    if (exchangeRate === undefined) {
+      this.logger.error(
+        'Failed to obtain USD exchange rate: HTML tag not found.',
+      );
+      await this.puppeteerService.closeBrowser();
+      return;
+    }
     this.logger.debug('USD exchange rate obtained.');
     await this.puppeteerService.screenshot(url, 'screenshots', true, {
       height: 700,
