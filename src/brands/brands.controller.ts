@@ -24,11 +24,7 @@ export class BrandsController {
     @Query() paginationQueryDto: PaginationQueryDto,
   ): Promise<IPagination<Brand>> {
     return await this.brandsService.findAll(
-      {
-        users: {
-          $elemMatch: { $eq: userId },
-        },
-      },
+      { user: userId },
       {},
       {},
       paginationQueryDto,
@@ -41,12 +37,7 @@ export class BrandsController {
     @Param('brandId', ParseMongoIdsPipe) brandId: string,
   ): Promise<Brand> {
     return await this.brandsService.findOne(
-      {
-        _id: brandId,
-        users: {
-          $elemMatch: { $eq: userId },
-        },
-      },
+      { _id: brandId, user: userId },
       {},
       {},
     );
