@@ -18,10 +18,9 @@ import { BrandsService } from '../brands/brands.service';
 import { IPagination } from '../common/interfaces/pagination.interface';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { ProductRepositoryService } from './repositories/product-repository.service';
-import { ProductStockOperationsEnum } from '../common/enums/product-stock-operations.enum';
-import { ProductStockOperationDto } from './dto/product-stock-operation.dto';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { CurrenciesEnum } from '../common/enums/currencies.enum';
+import { ModifyStockDto } from './dto/modify-stock.dto';
 
 @Injectable()
 export class ProductsService {
@@ -155,34 +154,36 @@ export class ProductsService {
     return product;
   }
 
-  async stockOperation(
+  async incrementStock(
     userId: string,
     productId: string,
-    operationDto: ProductStockOperationDto,
+    modifyStockDto: ModifyStockDto,
   ): Promise<Product> {
-    this.logger.debug(
-      `Performing stock operation: ${operationDto.operation} for product ID: ${productId}.`,
-    );
+    this.logger.debug(`Incrementing stock for product ID: ${productId}.`);
 
-    const update = { $inc: { stock: 0 } };
-    if (operationDto.operation === ProductStockOperationsEnum.INCREMENT) {
-      update.$inc.stock = operationDto.quantity;
-    } else {
-      update.$inc.stock = -operationDto.quantity;
-    }
+    const productQuery = { _id: productId, user: userId, isActive: true };
 
-    const product = await this.productRepository.findOneAndUpdate(
-      { user: userId, _id: productId },
-      update,
-    );
+    await this.exists(productQuery);
+    const updated = await this.findOneAndUpdate(productQuery, {
+      $inc: { stock: modifyStockDto.quantity },
+    });
+    this.logger.debug(`Stock updated for product ID: ${productId}.`);
+    return updated;
+  }
 
-    if (!product) {
-      this.logger.debug(`Product not found for ID: ${productId}.`);
-      throw new NotFoundException(`Product not found.`);
-    }
+  async decrementStock(
+    userId: string,
+    productId: string,
+    modifyStockDto: ModifyStockDto,
+  ): Promise<Product> {
+    const productQuery = { _id: productId, user: userId, isActive: true };
 
-    this.logger.debug(`Updated product stock: ${product.stock}.`);
-    return product;
+    await this.exists(productQuery);
+    const updated = await this.findOneAndUpdate(productQuery, {
+      $inc: { stock: -modifyStockDto.quantity },
+    });
+    this.logger.debug(`Stock updated for product ID: ${productId}.`);
+    return updated;
   }
 
   async exists(queryFilter: QueryFilter<Product>): Promise<boolean> {

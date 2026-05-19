@@ -13,7 +13,7 @@ import { Product } from '../common/schemas/product.schema';
 import { ParseMongoIdsPipe } from '../common/pipes/parse-mongo-ids.pipe';
 import { PaginationQueryDto } from '../common/dtos/pagination-query.dto';
 import { IPagination } from '../common/interfaces/pagination.interface';
-import { ProductStockOperationDto } from './dto/product-stock-operation.dto';
+import { ModifyStockDto } from './dto/modify-stock.dto';
 
 @Controller('users/:userId/brands/:brandId/products')
 export class ProductsController {
@@ -60,16 +60,29 @@ export class ProductsController {
     );
   }
 
-  @Patch(':productId')
+  @Patch(':productId/increment-stock')
   async stockOperation(
     @Param('userId', ParseMongoIdsPipe) userId: string,
     @Param('productId') productId: string,
-    @Body() stockOperationDto: ProductStockOperationDto,
+    @Body() modifyStockDto: ModifyStockDto,
   ): Promise<Product> {
-    return await this.productsService.stockOperation(
+    return await this.productsService.incrementStock(
       userId,
       productId,
-      stockOperationDto,
+      modifyStockDto,
+    );
+  }
+
+  @Patch(':productId/decrement-stock')
+  async decrementStock(
+    @Param('userId', ParseMongoIdsPipe) userId: string,
+    @Param('productId') productId: string,
+    @Body() modifyStockDto: ModifyStockDto,
+  ): Promise<Product> {
+    return await this.productsService.decrementStock(
+      userId,
+      productId,
+      modifyStockDto,
     );
   }
 
