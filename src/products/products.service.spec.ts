@@ -26,6 +26,7 @@ describe('ProductsService', () => {
     findOne: jest.Mock;
     count: jest.Mock;
     exists: jest.Mock;
+    findOneAndUpdate: jest.Mock;
   };
   let mockUsersService: {
     findOne: jest.Mock;
@@ -93,6 +94,7 @@ describe('ProductsService', () => {
       create: jest.fn().mockResolvedValue(mockProduct),
       find: jest.fn().mockResolvedValue(mockPaginatedResult),
       findOne: jest.fn().mockResolvedValue(mockProduct),
+      findOneAndUpdate: jest.fn().mockResolvedValue(mockProduct),
       count: jest.fn().mockResolvedValue(5),
       exists: jest.fn().mockResolvedValue(false),
     };
@@ -343,6 +345,87 @@ describe('ProductsService', () => {
       const result = await service.count({ name: 'Nonexistent' });
 
       expect(result).toBe(0);
+    });
+  });
+
+  describe('activate', () => {
+    const userId = 'user-id-123';
+
+    it('should activate an inactive product', async () => {
+      const inactiveProduct = {
+        ...mockProduct,
+        isActive: false,
+      };
+
+      mockProductRepository.findOne.mockResolvedValue(inactiveProduct);
+      mockProductRepository.findOneAndUpdate.mockResolvedValue({
+        ...inactiveProduct,
+        isActive: true,
+      });
+
+      const result = await service.activate(userId, mockProduct._id.toString());
+
+      expect(mockProductRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId },
+        expect.objectContaining({ $set: { isActive: true } }),
+        {},
+      );
+      expect(result.isActive).toBe(true);
+    });
+
+    it('should throw ConflictException when product is already active', async () => {
+      const activeProduct = {
+        ...mockProduct,
+        isActive: true,
+      };
+
+      mockProductRepository.findOne.mockResolvedValue(activeProduct);
+
+      await expect(
+        service.activate(userId, mockProduct._id.toString()),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('deactivate', () => {
+    const userId = 'user-id-123';
+
+    it('should deactivate an active product', async () => {
+      const activeProduct = {
+        ...mockProduct,
+        isActive: true,
+      };
+
+      mockProductRepository.findOne.mockResolvedValue(activeProduct);
+      mockProductRepository.findOneAndUpdate.mockResolvedValue({
+        ...activeProduct,
+        isActive: false,
+      });
+
+      const result = await service.deactivate(
+        userId,
+        mockProduct._id.toString(),
+      );
+
+      expect(mockProductRepository.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: mockProduct._id.toString(), user: userId },
+        expect.objectContaining({ $set: { isActive: false } }),
+        {},
+      );
+      expect(result.isActive).toBe(false);
+    });
+
+    it('should throw ConflictException when product is already inactive', async () => {
+      const inactiveProduct = {
+        ...mockProduct,
+        isActive: false,
+      };
+
+      mockProductRepository.findOne.mockResolvedValue(inactiveProduct);
+
+      await expect(
+        service.deactivate(userId, mockProduct._id.toString()),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });

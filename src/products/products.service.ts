@@ -227,6 +227,60 @@ export class ProductsService {
     return true;
   }
 
+  async activate(userId: string, productId: string): Promise<Product> {
+    this.logger.debug(`Activating product: ${productId}.`);
+
+    const existingProduct = await this.findOne({
+      _id: productId,
+      user: userId,
+    });
+
+    if (!existingProduct) {
+      this.logger.debug(`Product not found for ID: ${productId}.`);
+      throw new NotFoundException(`Product not found.`);
+    }
+
+    if (existingProduct.isActive) {
+      this.logger.debug(`Product is already active: ${productId}.`);
+      throw new ConflictException(`Product is already active.`);
+    }
+
+    const product = await this.findOneAndUpdate(
+      { _id: productId, user: userId },
+      { $set: { isActive: true } },
+    );
+
+    this.logger.debug(`Product activated: ${productId}.`);
+    return product;
+  }
+
+  async deactivate(userId: string, productId: string): Promise<Product> {
+    this.logger.debug(`Deactivating product: ${productId}.`);
+
+    const existingProduct = await this.findOne({
+      _id: productId,
+      user: userId,
+    });
+
+    if (!existingProduct) {
+      this.logger.debug(`Product not found for ID: ${productId}.`);
+      throw new NotFoundException(`Product not found.`);
+    }
+
+    if (!existingProduct.isActive) {
+      this.logger.debug(`Product is already inactive: ${productId}.`);
+      throw new ConflictException(`Product is already inactive.`);
+    }
+
+    const product = await this.findOneAndUpdate(
+      { _id: productId, user: userId },
+      { $set: { isActive: false } },
+    );
+
+    this.logger.debug(`Product deactivated: ${productId}.`);
+    return product;
+  }
+
   private validateCreationData(dto: CreateProductDto): void {
     this.logger.debug('Executing data pre-validations.');
 
